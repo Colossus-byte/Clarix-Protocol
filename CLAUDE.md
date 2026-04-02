@@ -22,6 +22,16 @@ Copy `.env.example` to `.env.local` and fill in:
 
 Firebase config is loaded from `firebase-applet-config.json` (not env vars).
 
+### Firebase Authorized Domains (Google Sign-In)
+
+If Google Sign-In throws `auth/unauthorized-domain`, the app's domain must be added to Firebase:
+
+1. Go to [Firebase Console](https://console.firebase.google.com/) → select the project
+2. Navigate to **Authentication** → **Settings** → **Authorized domains**
+3. Click **Add domain** and enter the domain (e.g. `clarix.app`, `localhost`, or your preview URL)
+
+This must be done for every new deployment domain (production, staging, preview URLs).
+
 ## Architecture
 
 **Stack:** React 19 + TypeScript + Vite + Tailwind CSS v4 + Firebase + ethers.js
