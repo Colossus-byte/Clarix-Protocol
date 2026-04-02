@@ -44,11 +44,15 @@ import { generateQuiz, generatePathRecommendation } from './services/claudeServi
 import { FirebaseProvider, useFirebase } from './contexts/FirebaseContext';
 import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { auth, db } from './firebase';
+import WalletConnectModal from './components/WalletConnectModal';
+import { WalletState, watchWalletChanges, checkExistingConnection } from './services/walletService';
 
 const AppContent: React.FC = () => {
   const { t: tTerm, Term } = useTerminology();
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
   const { user, isAuthReady, progress: firebaseProgress, updateProgress } = useFirebase();
+const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
+const [walletState, setWalletState] = useState<WalletState | null>(null);
 
   useEffect(() => {
     const handleLocationChange = () => setCurrentPath(window.location.pathname);
@@ -116,34 +120,31 @@ const AppContent: React.FC = () => {
     setProgress(p => ({ ...p, notifications: p.notifications.filter(n => n.id !== id) }));
   };
 
-  const connectWallet = async () => {
-    try {
-      if (typeof window.ethereum !== 'undefined' && window.ethereum.request) {
-        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        if (accounts && accounts.length > 0) {
-          const address = accounts[0];
-          const did = `did:ethr:${address}`;
-          setProgress(p => ({
-            ...p,
-            walletAddress: address,
-            did
-          }));
-          addNotification('Wallet Connected', 'Successfully connected your Web3 wallet.', 'success');
-        }
-      } else {
-        addNotification('Wallet Not Found', 'MetaMask is not installed. Please install it to use this feature.', 'warning');
-        setTimeout(() => window.open('https://metamask.io/download/', '_blank'), 2000);
-      }
-    } catch (error: any) {
-      console.error("Wallet connection error:", error);
-      if (error?.code === 4001 || error?.message?.includes('User rejected')) {
-        addNotification('Connection Rejected', 'You rejected the wallet connection request.', 'warning');
-      } else {
-        addNotification('Connection Failed', 'Failed to connect wallet. Please try again.', 'warning');
-      }
-    }
-  };
+const connectWallet = () => {
+  setIsWalletModalOpen(true);
+};
 
+const handleWalletConnected = (wallet: WalletState) => {
+  const did = `did:ethr:${wallet.address}`;
+  setWalletState(wallet);
+  setProgress(p => ({
+    ...p,
+    walletAddress: wallet.address,
+    did,
+  }));
+  addNotification(
+    'Wallet Connected',
+    `${wallet.chainName} · ${wallet.address.slice(0, 6)}...${wallet.address.slice(-4)}`,
+    'success'
+  );
+};
+
+const handleWalletDisconnected = () => {
+  setWalletState(null);
+  setProgress(p => ({ ...p, walletAddress: undefined, did: undefined }));
+  addNotification('Wallet Disconnected', 'Your wallet has been disconnected.', 'info');
+};
+  
   const [activeView, setActiveView] = useState<'academy' | 'certification' | 'institutional' | 'guilds' | 'governance' | 'peers' | 'profile' | 'market' | 'portfolio'>('academy');
   const [isQuizMode, setIsQuizMode] = useState(false);
   const [quizQuestions, setQuizQuestions] = useState<QuizQuestion[]>([]);
@@ -158,7 +159,35 @@ const AppContent: React.FC = () => {
     const storageKey = progress.did ? `clarix_v1_state_${progress.did}` : 'clarix_v1_state';
     localStorage.setItem(storageKey, JSON.stringify(progress));
   }, [progress]);
+useEffect(() => {
+  // Auto-detect if user already has MetaMask connected
+  checkExistingConnection().then(address => {
+    if (address && !progress.walletAddress) {
+      // Silently restore connection
+      setProgress(p => ({
+        ...p,
+        walletAddress: address,
+        did: `did:ethr:${address}`,
+      }));
+    }
+  });
 
+  // Watch for MetaMask account/chain changes
+  const cleanup = watchWalletChanges(
+    (newAddress) => {
+      setProgress(p => ({ ...p, walletAddress: newAddress, did: `did:ethr:${newAddress}` }));
+      addNotification('Account Changed', `Switched to ${newAddress.slice(0, 6)}...${newAddress.slice(-4)}`, 'info');
+    },
+    (newChainId) => {
+      addNotification('Network Changed', `Switched to chain ${newChainId}`, 'info');
+    },
+    handleWalletDisconnected
+  );
+
+  return cleanup;
+}, []);
+
+  
   const currentTopic = useMemo(() => 
     TOPICS.find(t => t.id === progress.currentTopicId) || TOPICS[0]
   , [progress.currentTopicId]);
@@ -333,6 +362,12 @@ const AppContent: React.FC = () => {
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-void text-slate-200 relative">
+      <WalletConnectModal
+  isOpen={isWalletModalOpen}
+  onClose={() => setIsWalletModalOpen(false)}
+  onConnected={handleWalletConnected}
+/>
+
       {showManifesto && <Manifesto onClose={() => setShowManifesto(false)} />}
       
       <div className={`fixed inset-0 bg-black/60 backdrop-blur-sm z-[55] transition-opacity duration-300 md:hidden ${isSidebarOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`} onClick={() => setIsSidebarOpen(false)}></div>
