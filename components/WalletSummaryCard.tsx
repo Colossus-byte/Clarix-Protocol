@@ -1,106 +1,194 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
-import { ethers } from 'ethers';
+// components/WalletSummaryCard.tsx
+// Clarix — Live market data + real wallet balance display
 
-interface WalletSummaryCardProps {
+import React, { useState, useEffect, useCallback } from 'react';
+import { getWalletMarketData, formatPrice, formatChange, isPositive, WalletMarketData } from '../services/marketService';
+
+interface Props {
   address?: string;
   onConnect: () => void;
 }
 
-const WalletSummaryCard: React.FC<WalletSummaryCardProps> = ({ address, onConnect }) => {
-  const [realBalance, setRealBalance] = useState<string | null>(null);
-  const [isFetching, setIsFetching] = useState(false);
+const WalletSummaryCard: React.FC<Props> = ({ address, onConnect }) => {
+  const [marketData, setMarketData] = useState<WalletMarketData | null>(null);
+  const [ethBalance, setEthBalance] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  useEffect(() => {
-    const fetchBalance = async () => {
-      if (address && typeof window.ethereum !== 'undefined' && window.ethereum.request) {
-        setIsFetching(true);
-        try {
-          const provider = new ethers.BrowserProvider(window.ethereum);
-          const balance = await provider.getBalance(address);
-          setRealBalance(ethers.formatEther(balance));
-        } catch (err) {
-          console.error("Failed to fetch balance", err);
-        } finally {
-          setIsFetching(false);
-        }
-      }
-    };
-    fetchBalance();
+  const fetchMarketData = useCallback(async () => {
+    try {
+      setError(null);
+      const data = await getWalletMarketData();
+      setMarketData(data);
+      setLastUpdated(new Date());
+    } catch (err: any) {
+      setError(err.message || 'Failed to load market data');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  // Fetch real ETH balance from wallet
+  const fetchEthBalance = useCallback(async () => {
+    if (!address || typeof window.ethereum === 'undefined') return;
+    try {
+      const balanceHex = await window.ethereum.request({
+        method: 'eth_getBalance',
+        params: [address, 'latest'],
+      });
+      const balanceWei = parseInt(balanceHex, 16);
+      const balanceEth = balanceWei / 1e18;
+      setEthBalance(balanceEth);
+    } catch (err) {
+      console.error('Failed to fetch ETH balance:', err);
+    }
   }, [address]);
 
-  // Mock data for public blockchain data
-  const ethValue = realBalance ? `$${(Number(realBalance) * 3450.20).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "$0.00";
-  
-  const topHoldings = [
-    { symbol: "USDC", amount: "2,500.00", value: "$2,500.00", icon: "fa-solid fa-dollar-sign", color: "text-blue-400" },
-    { symbol: "LINK", amount: "150.00", value: "$2,850.00", icon: "fa-solid fa-link", color: "text-indigo-400" },
-    { symbol: "UNI", amount: "400.00", value: "$3,200.00", icon: "fa-brands fa-ethereum", color: "text-pink-400" }
-  ];
+  useEffect(() => {
+    fetchMarketData();
+    // Refresh every 60 seconds
+    const interval = setInterval(fetchMarketData, 60_000);
+    return () => clearInterval(interval);
+  }, [fetchMarketData]);
+
+  useEffect(() => {
+    if (address) fetchEthBalance();
+  }, [address, fetchEthBalance]);
+
+  const fearGreedLabel = (score: number) => {
+    if (score < 25) return { label: 'Extreme Fear', color: 'text-red-400' };
+    if (score < 45) return { label: 'Fear', color: 'text-orange-400' };
+    if (score < 55) return { label: 'Neutral', color: 'text-yellow-400' };
+    if (score < 75) return { label: 'Greed', color: 'text-green-400' };
+    return { label: 'Extreme Greed', color: 'text-cyber-lime' };
+  };
+
+  const fearGreed = marketData ? fearGreedLabel(marketData.fearGreedIndex) : null;
 
   return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="w-full bg-gradient-to-br from-slate-900 to-surface border border-white/10 rounded-3xl p-6 md:p-8 mb-8 shadow-2xl relative overflow-hidden"
-    >
-      <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 blur-[80px] rounded-full pointer-events-none"></div>
-      
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 relative z-10">
-        <div>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center border border-blue-500/30">
-              <i className="fa-solid fa-wallet text-blue-500 text-sm"></i>
-            </div>
-            <h3 className="text-sm md:text-base font-bold text-white tracking-wide">Your Connected Wallet</h3>
+    <div className="w-full rounded-2xl border border-white/10 bg-black/40 backdrop-blur-xl overflow-hidden">
+
+      {/* Header */}
+      <div className="flex items-center justify-between px-6 py-4 border-b border-white/5">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-electric-violet/20 border border-electric-violet/30 flex items-center justify-center">
+            <i className="fa-solid fa-chart-line text-electric-violet text-sm"></i>
           </div>
-          <div className="text-xs text-slate-400 font-mono bg-black/40 px-3 py-1.5 rounded-lg border border-white/5 w-fit min-h-[30px] flex items-center">
-            {address ? (
-              address
-            ) : (
-              <button onClick={onConnect} className="flex items-center gap-2 text-blue-400 hover:text-blue-300 transition-colors">
-                <i className="fa-solid fa-link"></i> 
-                <span className="font-bold uppercase tracking-widest text-[10px]">Connect Wallet</span>
-              </button>
+          <div>
+            <h3 className="text-white font-bold text-sm tracking-tight">Market Overview</h3>
+            {lastUpdated && (
+              <p className="text-slate-500 text-[10px]">
+                Updated {lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </p>
             )}
           </div>
         </div>
+        <button
+          onClick={fetchMarketData}
+          disabled={isLoading}
+          className="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all"
+          title="Refresh"
+        >
+          <i className={`fa-solid fa-rotate text-slate-400 text-xs ${isLoading ? 'animate-spin' : ''}`}></i>
+        </button>
+      </div>
 
-        <div className="flex flex-col md:items-end">
-          <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-1">Total Balance</p>
-          <div className="flex items-baseline gap-2">
-            <h2 className="text-3xl md:text-4xl font-black text-white tracking-tighter">
-              {isFetching ? "..." : (address && realBalance ? Number(realBalance).toFixed(4) : "0.00")} <span className="text-lg text-blue-500">ETH</span>
-            </h2>
+      {/* Market Data Grid */}
+      {isLoading && !marketData ? (
+        <div className="px-6 py-8 flex items-center justify-center gap-3">
+          <div className="w-4 h-4 border-2 border-electric-violet border-t-transparent rounded-full animate-spin"></div>
+          <span className="text-slate-400 text-sm">Fetching live prices...</span>
+        </div>
+      ) : error && !marketData ? (
+        <div className="px-6 py-6 text-center">
+          <p className="text-orange-400 text-sm mb-3">{error}</p>
+          <button onClick={fetchMarketData} className="text-electric-violet text-xs underline">Retry</button>
+        </div>
+      ) : marketData ? (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-px bg-white/5">
+
+          {/* BTC */}
+          <div className="bg-black/60 px-5 py-4">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-orange-400 text-xs font-bold">₿ BTC</span>
+            </div>
+            <p className="text-white font-bold text-lg tracking-tight">{formatPrice(marketData.btcPrice)}</p>
+            <p className={`text-xs font-semibold mt-1 ${isPositive(marketData.btcChange24h) ? 'text-cyber-lime' : 'text-red-400'}`}>
+              {formatChange(marketData.btcChange24h)} 24h
+            </p>
           </div>
-          <p className="text-sm text-emerald-400 font-medium mt-1">≈ {address ? ethValue : "$0.00"}</p>
+
+          {/* ETH */}
+          <div className="bg-black/60 px-5 py-4">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-blue-400 text-xs font-bold">Ξ ETH</span>
+            </div>
+            <p className="text-white font-bold text-lg tracking-tight">{formatPrice(marketData.ethPrice)}</p>
+            <p className={`text-xs font-semibold mt-1 ${isPositive(marketData.ethChange24h) ? 'text-cyber-lime' : 'text-red-400'}`}>
+              {formatChange(marketData.ethChange24h)} 24h
+            </p>
+          </div>
+
+          {/* Market Cap */}
+          <div className="bg-black/60 px-5 py-4">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-slate-400 text-xs font-bold">MARKET CAP</span>
+            </div>
+            <p className="text-white font-bold text-lg tracking-tight">
+              ${(marketData.totalMarketCap / 1e12).toFixed(2)}T
+            </p>
+            <p className="text-slate-500 text-xs mt-1">Total crypto</p>
+          </div>
+
+          {/* Fear & Greed */}
+          <div className="bg-black/60 px-5 py-4">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-slate-400 text-xs font-bold">SENTIMENT</span>
+            </div>
+            <p className="text-white font-bold text-lg tracking-tight">{marketData.fearGreedIndex}</p>
+            {fearGreed && <p className={`text-xs font-semibold mt-1 ${fearGreed.color}`}>{fearGreed.label}</p>}
+          </div>
+
         </div>
+      ) : null}
+
+      {/* Wallet Section */}
+      <div className="px-6 py-5">
+        {address ? (
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-slate-500 text-[10px] uppercase tracking-widest mb-1">Connected Wallet</p>
+              <p className="text-white font-mono text-sm">
+                {address.slice(0, 6)}...{address.slice(-4)}
+              </p>
+              {ethBalance !== null && marketData && (
+                <div className="flex items-center gap-3 mt-2">
+                  <span className="text-blue-400 font-bold text-sm">{ethBalance.toFixed(4)} ETH</span>
+                  <span className="text-slate-500 text-xs">
+                    ≈ {formatPrice(ethBalance * marketData.ethPrice)}
+                  </span>
+                </div>
+              )}
+            </div>
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-cyber-lime/10 border border-cyber-lime/20">
+              <div className="w-2 h-2 rounded-full bg-cyber-lime animate-pulse"></div>
+              <span className="text-cyber-lime text-[10px] font-bold uppercase tracking-widest">Live</span>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={onConnect}
+            className="w-full py-3 rounded-xl bg-electric-violet/10 border border-electric-violet/30 hover:bg-electric-violet/20 transition-all flex items-center justify-center gap-3 group"
+          >
+            <i className="fa-solid fa-wallet text-electric-violet text-sm"></i>
+            <span className="text-white font-bold text-sm">Connect Wallet to See Your Balance</span>
+            <i className="fa-solid fa-arrow-right text-electric-violet text-xs group-hover:translate-x-1 transition-transform"></i>
+          </button>
+        )}
       </div>
 
-      <div className="mt-8 pt-6 border-t border-white/5">
-        <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-4">Top Holdings</h4>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {address ? topHoldings.map((holding, idx) => (
-            <div key={idx} className="bg-white/5 border border-white/5 rounded-2xl p-4 flex items-center justify-between hover:bg-white/10 transition-colors">
-              <div className="flex items-center gap-3">
-                <div className={`w-8 h-8 rounded-full bg-black/40 flex items-center justify-center ${holding.color}`}>
-                  <i className={holding.icon}></i>
-                </div>
-                <div>
-                  <p className="text-white font-bold text-sm">{holding.symbol}</p>
-                  <p className="text-xs text-slate-400">{holding.amount}</p>
-                </div>
-              </div>
-              <p className="text-white font-medium text-sm">{holding.value}</p>
-            </div>
-          )) : (
-            <div className="col-span-3 text-center py-6 text-slate-500 text-sm">
-              Connect your wallet to view your holdings.
-            </div>
-          )}
-        </div>
-      </div>
-    </motion.div>
+    </div>
   );
 };
 
