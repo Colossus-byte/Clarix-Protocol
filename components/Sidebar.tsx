@@ -32,7 +32,7 @@ const Sidebar: React.FC<SidebarProps> = ({ progress, onSelectTopic, onSelectView
         <div className="flex items-center justify-between mb-8 md:mb-16">
           <div className="flex items-center gap-3 md:gap-4">
             <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-blue-500 flex items-center justify-center text-white shadow-[0_0_20px_rgba(59,130,246,0.3)]">
-              <i className="fa-solid fa-cube text-lg md:text-xl"></i>
+              <i className="fa-solid fa-atom text-lg md:text-xl"></i>
             </div>
             <h1 className="text-xl md:text-2xl font-bold tracking-tighter text-white uppercase italic leading-none">Clarix</h1>
           </div>

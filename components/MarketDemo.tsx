@@ -79,29 +79,59 @@ const MarketDemo: React.FC<MarketDemoProps> = ({ progress, onUpdate }) => {
     }, 2000);
   };
 
-  // Live data simulation
+  const [isFetching, setIsFetching] = useState(false);
+
+  const fetchRealData = async () => {
+    setIsFetching(true);
+    try {
+      const response = await fetch('https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=15&page=1&sparkline=true');
+      const data = await response.json();
+      
+      if (Array.isArray(data)) {
+        const newAssets = data.map(coin => {
+          // Generate AI signals based on price action
+          let signal: 'Bullish' | 'Neutral' | 'Bearish' = 'Neutral';
+          let confidence = 50 + Math.floor(Math.random() * 30);
+          
+          if (coin.price_change_percentage_24h > 2) {
+            signal = 'Bullish';
+            confidence += 10;
+          } else if (coin.price_change_percentage_24h < -2) {
+            signal = 'Bearish';
+            confidence += 10;
+          }
+
+          // Generate a summary
+          let summary = '';
+          if (signal === 'Bullish') summary = `Strong upward momentum detected for ${coin.name}. On-chain metrics suggest accumulation.`;
+          else if (signal === 'Bearish') summary = `Selling pressure observed for ${coin.name}. Key support levels are being tested.`;
+          else summary = `${coin.name} is consolidating. Volatility is low, awaiting next major market catalyst.`;
+
+          return {
+            id: coin.id,
+            symbol: coin.symbol.toUpperCase(),
+            name: coin.name,
+            price: coin.current_price,
+            change24h: coin.price_change_percentage_24h || 0,
+            signal,
+            confidence: Math.min(99, confidence),
+            summary,
+            sparkline: coin.sparkline_in_7d?.price || []
+          };
+        });
+        setAssets(newAssets);
+      }
+    } catch (error) {
+      console.error("Failed to fetch market data:", error);
+    } finally {
+      setIsFetching(false);
+    }
+  };
+
+  // Live data fetching
   useEffect(() => {
-    const interval = setInterval(() => {
-      setAssets(prev => prev.map(asset => {
-        // Random slight fluctuations
-        const priceChange = asset.price * (Math.random() * 0.004 - 0.002); // +/- 0.2%
-        const newPrice = asset.price + priceChange;
-        const newChange24h = asset.change24h + (Math.random() * 0.4 - 0.2);
-        const newConfidence = Math.min(99, Math.max(50, asset.confidence + Math.floor(Math.random() * 5 - 2)));
-        
-        // Update sparkline
-        const newSparkline = [...asset.sparkline.slice(1), asset.sparkline[asset.sparkline.length - 1] + (Math.random() * 10 - 5)];
-
-        return {
-          ...asset,
-          price: newPrice,
-          change24h: newChange24h,
-          confidence: newConfidence,
-          sparkline: newSparkline
-        };
-      }));
-    }, 30000); // Updates every 30 seconds
-
+    fetchRealData();
+    const interval = setInterval(fetchRealData, 60000); // Update every minute
     return () => clearInterval(interval);
   }, []);
 

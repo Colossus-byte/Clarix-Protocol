@@ -56,7 +56,7 @@ const SignupPage: React.FC<SignupPageProps> = ({ onSignup, onWalletConnect }) =>
     
     try {
       if (walletType === 'metamask') {
-        if (typeof window.ethereum !== 'undefined') {
+        if (typeof window.ethereum !== 'undefined' && window.ethereum.request) {
           const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
           if (accounts && accounts.length > 0) {
             onWalletConnect(accounts[0]);
@@ -82,7 +82,7 @@ const SignupPage: React.FC<SignupPageProps> = ({ onSignup, onWalletConnect }) =>
       }
     } catch (error: any) {
       console.error("Wallet connection error:", error);
-      if (error.code === 4001 || error.message?.includes('User rejected')) {
+      if (error?.code === 4001 || error?.message?.includes('User rejected')) {
         setErrorMsg("Connection request was rejected.");
       } else {
         setErrorMsg(`Failed to connect ${walletType}. Please try again.`);

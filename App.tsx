@@ -101,9 +101,24 @@ const AppContent: React.FC = () => {
     }
   };
 
+  const addNotification = (title: string, message: string, type: ProtocolNotification['type'] = 'info') => {
+    const newNotif: ProtocolNotification = {
+      id: Math.random().toString(),
+      title,
+      message,
+      type,
+      timestamp: Date.now()
+    };
+    setProgress(p => ({ ...p, notifications: [newNotif, ...p.notifications] }));
+  };
+
+  const dismissNotification = (id: string) => {
+    setProgress(p => ({ ...p, notifications: p.notifications.filter(n => n.id !== id) }));
+  };
+
   const connectWallet = async () => {
     try {
-      if (typeof window.ethereum !== 'undefined') {
+      if (typeof window.ethereum !== 'undefined' && window.ethereum.request) {
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
         if (accounts && accounts.length > 0) {
           const address = accounts[0];
@@ -113,13 +128,19 @@ const AppContent: React.FC = () => {
             walletAddress: address,
             did
           }));
+          addNotification('Wallet Connected', 'Successfully connected your Web3 wallet.', 'success');
         }
       } else {
-        alert("MetaMask is not installed. Please install it to use this feature.");
-        window.open('https://metamask.io/download/', '_blank');
+        addNotification('Wallet Not Found', 'MetaMask is not installed. Please install it to use this feature.', 'warning');
+        setTimeout(() => window.open('https://metamask.io/download/', '_blank'), 2000);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Wallet connection error:", error);
+      if (error?.code === 4001 || error?.message?.includes('User rejected')) {
+        addNotification('Connection Rejected', 'You rejected the wallet connection request.', 'warning');
+      } else {
+        addNotification('Connection Failed', 'Failed to connect wallet. Please try again.', 'warning');
+      }
     }
   };
 
@@ -137,21 +158,6 @@ const AppContent: React.FC = () => {
     const storageKey = progress.did ? `clarix_v1_state_${progress.did}` : 'clarix_v1_state';
     localStorage.setItem(storageKey, JSON.stringify(progress));
   }, [progress]);
-
-  const addNotification = (title: string, message: string, type: ProtocolNotification['type'] = 'info') => {
-    const newNotif: ProtocolNotification = {
-      id: Math.random().toString(),
-      title,
-      message,
-      type,
-      timestamp: Date.now()
-    };
-    setProgress(p => ({ ...p, notifications: [newNotif, ...p.notifications] }));
-  };
-
-  const dismissNotification = (id: string) => {
-    setProgress(p => ({ ...p, notifications: p.notifications.filter(n => n.id !== id) }));
-  };
 
   const currentTopic = useMemo(() => 
     TOPICS.find(t => t.id === progress.currentTopicId) || TOPICS[0]

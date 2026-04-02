@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
+import { ethers } from 'ethers';
 
 interface WalletSummaryCardProps {
   address?: string;
@@ -7,9 +8,29 @@ interface WalletSummaryCardProps {
 }
 
 const WalletSummaryCard: React.FC<WalletSummaryCardProps> = ({ address, onConnect }) => {
+  const [realBalance, setRealBalance] = useState<string | null>(null);
+  const [isFetching, setIsFetching] = useState(false);
+
+  useEffect(() => {
+    const fetchBalance = async () => {
+      if (address && typeof window.ethereum !== 'undefined' && window.ethereum.request) {
+        setIsFetching(true);
+        try {
+          const provider = new ethers.BrowserProvider(window.ethereum);
+          const balance = await provider.getBalance(address);
+          setRealBalance(ethers.formatEther(balance));
+        } catch (err) {
+          console.error("Failed to fetch balance", err);
+        } finally {
+          setIsFetching(false);
+        }
+      }
+    };
+    fetchBalance();
+  }, [address]);
+
   // Mock data for public blockchain data
-  const ethBalance = "1.45";
-  const ethValue = "$4,825.30";
+  const ethValue = realBalance ? `$${(Number(realBalance) * 3450.20).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : "$0.00";
   
   const topHoldings = [
     { symbol: "USDC", amount: "2,500.00", value: "$2,500.00", icon: "fa-solid fa-dollar-sign", color: "text-blue-400" },
@@ -48,7 +69,9 @@ const WalletSummaryCard: React.FC<WalletSummaryCardProps> = ({ address, onConnec
         <div className="flex flex-col md:items-end">
           <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mb-1">Total Balance</p>
           <div className="flex items-baseline gap-2">
-            <h2 className="text-3xl md:text-4xl font-black text-white tracking-tighter">{address ? ethBalance : "0.00"} <span className="text-lg text-blue-500">ETH</span></h2>
+            <h2 className="text-3xl md:text-4xl font-black text-white tracking-tighter">
+              {isFetching ? "..." : (address && realBalance ? Number(realBalance).toFixed(4) : "0.00")} <span className="text-lg text-blue-500">ETH</span>
+            </h2>
           </div>
           <p className="text-sm text-emerald-400 font-medium mt-1">≈ {address ? ethValue : "$0.00"}</p>
         </div>
