@@ -148,6 +148,7 @@ export interface UserProgress {
   longestStreak: number;
   // Credentials
   earnedCredentialIds: string[];
+  learningBannerDismissed?: boolean;
 }
 
 export interface Recommendation {

@@ -277,7 +277,7 @@ const CertificationHub: React.FC<CertificationHubProps> = ({ progress }) => {
   };
 
   return (
-    <div className="mt-8 md:mt-16 pb-16 page-transition">
+    <div className="pb-16 page-transition">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-10">
         <div>
@@ -387,7 +387,7 @@ const CertificationHub: React.FC<CertificationHubProps> = ({ progress }) => {
           <div className="mt-10 p-6 rounded-2xl bg-white/[0.02] border border-white/5 flex flex-col md:flex-row items-start md:items-center gap-4">
             <i className="fa-solid fa-building-columns text-amber-500/40 text-2xl shrink-0"></i>
             <p className="text-xs text-slate-400 leading-relaxed">
-              <strong className="text-white">Institutional Value:</strong> These credentials are stored on Firestore with a cryptographic verification hash linked to your wallet address. Share the verification link so employers and protocols can confirm your knowledge independently.
+              Institutional Value: These credentials are stored on Firestore with a cryptographic verification hash linked to your wallet address. Share the verification link so employers and protocols can confirm your knowledge independently.
             </p>
           </div>
         </>
