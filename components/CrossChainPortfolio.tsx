@@ -273,7 +273,7 @@ export default function CrossChainPortfolio({ walletAddress, onConnectWallet }: 
       {usingMockData && holdings.length > 0 && (
         <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-bold">
           <i className="fa-solid fa-flask-vial"></i>
-          Demo data — no real holdings found for this address. Connect a wallet or enter an address with on-chain activity to see live data.
+          Demo data: no real holdings found for this address. Connect a wallet or enter an address with on-chain activity to see live data.
         </div>
       )}
 
@@ -406,7 +406,7 @@ export default function CrossChainPortfolio({ walletAddress, onConnectWallet }: 
                             <div className="flex-1 flex items-center gap-3">
                               <i className="fa-solid fa-robot text-blue-500 opacity-50"></i>
                               <p className="text-xs text-slate-400 italic">
-                                "{asset.summary}" — <span className="text-blue-500 font-bold not-italic">AI Confidence: {asset.confidence}%</span>
+                                "{asset.summary}" <span className="text-blue-500 font-bold not-italic">(AI Confidence: {asset.confidence}%)</span>
                               </p>
                             </div>
                           </div>

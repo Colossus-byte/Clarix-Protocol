@@ -10,13 +10,20 @@ interface MarketIntelligenceProps {
 const MarketIntelligence: React.FC<MarketIntelligenceProps> = ({ language }) => {
   const [intel, setIntel] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadMarketIntel = async () => {
       setLoading(true);
-      const data = await fetchIntelligencePulse("Bitcoin and Ethereum institutional sentiment and technical updates", language);
-      setIntel(data);
-      setLoading(false);
+      setError(null);
+      try {
+        const data = await fetchIntelligencePulse("Bitcoin and Ethereum institutional sentiment and technical updates", language);
+        setIntel(data);
+      } catch {
+        setError('Market data unavailable');
+      } finally {
+        setLoading(false);
+      }
     };
     loadMarketIntel();
   }, [language]);
@@ -44,6 +51,8 @@ const MarketIntelligence: React.FC<MarketIntelligenceProps> = ({ language }) => 
           <div className="h-1.5 md:h-2 w-[80%] bg-white/5 rounded animate-pulse"></div>
           <div className="h-1.5 md:h-2 w-[90%] bg-white/5 rounded animate-pulse"></div>
         </div>
+      ) : error ? (
+        <p className="text-[10px] text-rose-400/70 font-medium">{error}</p>
       ) : (
         <>
           <p className="text-[10px] md:text-[11px] text-slate-400 leading-relaxed font-medium mb-4 md:mb-6">

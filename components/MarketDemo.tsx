@@ -182,7 +182,7 @@ const MarketDemo: React.FC<MarketDemoProps> = ({ progress, onUpdate }) => {
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-500"></span>
               </span>
               <span className="text-xs font-bold text-blue-500 uppercase tracking-widest">
-                Live Demo Data — Signals update every 30s
+                Live Demo Data · Signals update every 30s
               </span>
             </div>
           </div>

@@ -12,13 +12,20 @@ interface NewsPulseProps {
 const NewsPulse: React.FC<NewsPulseProps> = ({ topicTitle, language }) => {
   const [pulseData, setPulseData] = useState<{ text: string; sources: any[] } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const getPulse = async () => {
       setIsLoading(true);
-      const data = await fetchIntelligencePulse(topicTitle, language);
-      setPulseData(data);
-      setIsLoading(false);
+      setError(null);
+      try {
+        const data = await fetchIntelligencePulse(topicTitle, language);
+        setPulseData(data);
+      } catch {
+        setError('Could not load market intelligence. Check your API key or try again later.');
+      } finally {
+        setIsLoading(false);
+      }
     };
     getPulse();
   }, [topicTitle, language]);
@@ -28,6 +35,15 @@ const NewsPulse: React.FC<NewsPulseProps> = ({ topicTitle, language }) => {
       <div className="mt-16 p-8 rounded-3xl bg-white/[0.02] border border-white/5 animate-pulse">
         <div className="h-4 w-48 bg-white/10 rounded mb-4"></div>
         <div className="h-20 w-full bg-white/5 rounded"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="mt-8 p-5 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-sm flex items-center gap-3">
+        <i className="fa-solid fa-triangle-exclamation shrink-0"></i>
+        {error}
       </div>
     );
   }

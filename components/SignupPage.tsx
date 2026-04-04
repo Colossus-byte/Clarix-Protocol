@@ -59,7 +59,7 @@ const SignupPage: React.FC<SignupPageProps> = ({ onWalletConnect }) => {
           <button
             onClick={() => handleWalletConnect('walletconnect' as const)}
             disabled={isConnecting}
-            className="w-full py-3 px-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#3b99fc]/50 text-white font-bold text-sm transition-all flex items-center justify-center gap-3 disabled:opacity-50"
+            className="wallet-connect-btn w-full py-3 px-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#3b99fc]/50 text-white font-bold text-sm transition-all flex items-center justify-center gap-3 disabled:opacity-50"
           >
             <div className="w-5 h-5 rounded-full bg-[#3b99fc] flex items-center justify-center">
               <i className="fa-solid fa-link text-white text-xs"></i>
@@ -88,9 +88,16 @@ const SignupPage: React.FC<SignupPageProps> = ({ onWalletConnect }) => {
         )}
 
         <div className="mt-8 text-center">
-          <a href="#" className="text-sm text-slate-400 hover:text-white transition-colors">
-            Already have an account? <span className="text-blue-500 font-bold">Sign in</span>
-          </a>
+          <p className="text-sm text-slate-400">
+            Already have an account?{' '}
+            <button
+              type="button"
+              onClick={() => document.querySelector<HTMLButtonElement>('.wallet-connect-btn')?.focus()}
+              className="text-blue-500 font-bold hover:text-blue-400 transition-colors"
+            >
+              Connect your wallet above to sign in
+            </button>
+          </p>
         </div>
       </motion.div>
     </div>

@@ -5,10 +5,10 @@ import { TOPICS } from '../constants';
 import { UserProgress, Difficulty } from '../types';
 
 const DIFFICULTY_LABELS: Record<Difficulty, string> = {
-  [Difficulty.BASIC]:       'Level 1 — Beginner',
-  [Difficulty.FUNDAMENTAL]: 'Level 2 — Practical',
-  [Difficulty.MID]:         'Level 3 — Intermediate',
-  [Difficulty.PRO]:         'Level 4 — Advanced',
+  [Difficulty.BASIC]:       'Level 1: Beginner',
+  [Difficulty.FUNDAMENTAL]: 'Level 2: Practical',
+  [Difficulty.MID]:         'Level 3: Intermediate',
+  [Difficulty.PRO]:         'Level 4: Advanced',
 };
 
 const LEVEL_ICONS: Record<Difficulty, string> = {

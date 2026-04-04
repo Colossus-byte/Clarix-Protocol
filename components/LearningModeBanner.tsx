@@ -20,7 +20,7 @@ const LearningModeBanner: React.FC = () => {
               <i className="fa-solid fa-graduation-cap text-hyper-gold text-xs md:text-sm"></i>
             </div>
             <span className="text-[10px] md:text-sm font-medium text-white">
-              You're in <span className="text-hyper-gold font-bold">Learning Mode</span> — everything is explained as you go
+              You're in <span className="text-hyper-gold font-bold">Learning Mode</span>. Everything is explained as you go.
             </span>
           </div>
         </motion.div>

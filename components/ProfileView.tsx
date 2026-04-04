@@ -202,7 +202,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ progress, onUpdate }) => {
                   </div>
                 </div>
                 <p className="text-[10px] md:text-xs text-slate-400 font-medium leading-relaxed">
-                  Your identity is verified on-chain — no personal data stored by Clarix
+                  Your identity is verified on-chain. No personal data is stored by Clarix.
                 </p>
               </div>
             )}
@@ -218,7 +218,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ progress, onUpdate }) => {
                 <div>
                   <h4 className="text-sm md:text-base font-black text-white uppercase tracking-widest">Your Data</h4>
                   <p className="text-[8px] md:text-[10px] text-slate-400 font-medium mt-1">
-                    Your data is stored on a decentralized network — it belongs to you, not us.
+                    Your data is stored on a decentralized network. It belongs to you, not us.
                   </p>
                 </div>
               </div>

@@ -29,7 +29,7 @@ const InvestorsPage: React.FC = () => {
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-slate-900 to-hyper-gold">crypto users</span>
             </h1>
             <p className="text-lg sm:text-xl md:text-2xl text-slate-600 mb-12 max-w-3xl mx-auto leading-relaxed font-medium">
-              Clarix Protocol is an AI-powered crypto intelligence platform that makes digital finance accessible to everyone — from first-time investors to seasoned traders.
+              Clarix Protocol is an AI-powered crypto intelligence platform that makes digital finance accessible to everyone, from first-time investors to seasoned traders.
             </p>
             <a href="#" className="inline-flex items-center justify-center px-8 py-4 text-base md:text-lg font-bold text-white transition-all bg-slate-900 rounded-full hover:bg-slate-800 hover:shadow-xl hover:shadow-slate-900/20 hover:-translate-y-1">
               Download Pitch Deck
@@ -50,7 +50,7 @@ const InvestorsPage: React.FC = () => {
           </FadeIn>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {[
-              { icon: 'fa-users-slash', text: '420M+ crypto users worldwide — yet 80% quit within 3 months' },
+              { icon: 'fa-users-slash', text: '420M+ crypto users worldwide, yet 80% quit within 3 months' },
               { icon: 'fa-brain', text: 'Complex jargon and overwhelming data drive beginners away' },
               { icon: 'fa-bridge-water', text: 'No single platform bridges the gap between newbies and pros' }
             ].map((item, i) => (
@@ -80,7 +80,7 @@ const InvestorsPage: React.FC = () => {
               { title: 'Smart Signals', desc: 'AI reads the market and tells you what matters', icon: 'fa-wand-magic-sparkles' },
               { title: 'Newbie Mode', desc: 'Plain English explanations for every term and metric', icon: 'fa-graduation-cap' },
               { title: 'Intelligence Tiers', desc: 'From free insights to professional-grade analysis', icon: 'fa-layer-group' },
-              { title: 'Decentralized Identity', desc: 'Clarix uses decentralized identity — user data belongs to users, not to us', icon: 'fa-fingerprint' }
+              { title: 'Decentralized Identity', desc: 'Clarix uses decentralized identity. Your data belongs to you, not us.', icon: 'fa-fingerprint' }
             ].map((item, i) => (
               <FadeIn key={i} delay={i * 0.15}>
                 <div className="bg-slate-50 p-8 md:p-10 rounded-[2rem] border border-slate-200 h-full hover:bg-slate-900 hover:border-slate-900 transition-colors group">

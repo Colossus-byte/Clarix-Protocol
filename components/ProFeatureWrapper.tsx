@@ -54,7 +54,7 @@ const ProFeatureWrapper: React.FC<ProFeatureWrapperProps> = ({ isPro, featureNam
             </div>
             <h3 className="text-2xl font-black text-white tracking-tight mb-3">{featureName}</h3>
             <p className="text-sm text-slate-400 mb-8 leading-relaxed">
-              This is a Pro feature — see a preview below.
+              This is a Pro feature. See a preview below.
             </p>
             <button
               onClick={() => { setPreviewState('previewing'); setTimeLeft(5); }}

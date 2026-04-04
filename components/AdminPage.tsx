@@ -200,8 +200,8 @@ const AdminPage: React.FC = () => {
               <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">
                 Top 10 Users by Lessons Completed
               </h2>
-              <div className="rounded-2xl bg-surface border border-white/5 overflow-hidden">
-                <table className="w-full text-left">
+              <div className="rounded-2xl bg-surface border border-white/5 overflow-x-auto">
+                <table className="w-full text-left min-w-[500px]">
                   <thead>
                     <tr className="border-b border-white/5 bg-white/[0.02]">
                       {['Rank', 'Username', 'Lessons', 'XP', 'Streak', 'Guild'].map(h => (
@@ -238,8 +238,8 @@ const AdminPage: React.FC = () => {
               <h2 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">
                 Recent Wallet Registrations ({wallets.length} shown)
               </h2>
-              <div className="rounded-2xl bg-surface border border-white/5 overflow-hidden">
-                <table className="w-full text-left">
+              <div className="rounded-2xl bg-surface border border-white/5 overflow-x-auto">
+                <table className="w-full text-left min-w-[560px]">
                   <thead>
                     <tr className="border-b border-white/5 bg-white/[0.02]">
                       {['Wallet Address', 'Username', 'Connected', 'Date'].map(h => (

@@ -29,7 +29,7 @@ const ClarixHero: React.FC = () => {
         </h1>
 
         <p className="text-base sm:text-xl md:text-2xl text-slate-400 mb-12 max-w-3xl leading-relaxed font-medium px-2">
-          Tired of endless jargon and confusing charts? Our AI translates complex market data into plain English, giving you the confidence to make your next move — whether it's your first trade or your thousandth.
+          Tired of endless jargon and confusing charts? Our AI translates complex market data into plain English, giving you the confidence to make your next move, whether it's your first trade or your thousandth.
         </p>
 
         {/* Single CTA */}

@@ -539,7 +539,7 @@ useEffect(() => {
         {!progress.isPro && (
           <div className="w-full bg-[#0f172a] border-b border-hyper-gold/20 px-4 py-3 flex flex-col sm:flex-row items-center justify-center gap-4 text-center z-30 relative shrink-0">
             <p className="text-sm text-slate-300">
-              <span className="font-bold text-white">You're on the Free Plan</span> — Upgrade to Pro for full AI signals and advanced analytics
+              <span className="font-bold text-white">You're on the Free Plan.</span> Upgrade to Pro for full AI signals and advanced analytics.
             </p>
             <button 
               onClick={togglePro}
@@ -663,7 +663,7 @@ useEffect(() => {
           <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10">
             <i className="fa-solid fa-cube text-blue-500 text-[10px]"></i>
             <span className="text-[8px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-              Powered by IPFS — Decentralized Storage
+              Powered by IPFS · Decentralized Storage
             </span>
           </div>
         </div>

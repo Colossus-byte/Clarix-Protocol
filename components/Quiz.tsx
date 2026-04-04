@@ -48,7 +48,7 @@ const Quiz: React.FC<QuizProps> = ({ questions, onComplete, onCancel }) => {
         <p className="text-slate-400 mb-4 text-sm md:text-lg font-medium leading-relaxed">
           You got <span className="text-white font-bold">{score} out of {questions.length}</span> correct.
           {passed
-            ? ' Great work — you\'ve unlocked the next level.'
+            ? ' Great work! You\'ve unlocked the next level.'
             : ' You need 70% to pass. Review the lesson and try again.'}
         </p>
 
@@ -129,7 +129,7 @@ const Quiz: React.FC<QuizProps> = ({ questions, onComplete, onCancel }) => {
           <div className="flex items-center gap-2 mb-2">
             <i className={`fa-solid ${isCorrect ? 'fa-lightbulb text-cyber-lime' : 'fa-triangle-exclamation text-rose-400'} text-sm`}></i>
             <span className={`text-[9px] font-black uppercase tracking-widest ${isCorrect ? 'text-cyber-lime' : 'text-rose-400'}`}>
-              {isCorrect ? 'Correct!' : `Not quite — the answer is: ${current.options[current.correctAnswerIndex]}`}
+              {isCorrect ? 'Correct!' : `Not quite. The correct answer is: ${current.options[current.correctAnswerIndex]}`}
             </span>
           </div>
           <p className="text-sm text-slate-300 leading-relaxed font-medium">{current.explanation}</p>
