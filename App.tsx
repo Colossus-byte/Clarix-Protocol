@@ -42,8 +42,6 @@ import { TOPICS, UI_TRANSLATIONS, DEFAULT_AVATARS } from './constants';
 import { UserProgress, QuizQuestion, Language, Guild, P2PMessage, P2PTransaction, ProtocolNotification, Recommendation } from './types';
 import { generateQuiz, generatePathRecommendation } from './services/claudeService';
 import { FirebaseProvider, useFirebase } from './contexts/FirebaseContext';
-import { signInWithRedirect, getRedirectResult, GoogleAuthProvider } from 'firebase/auth';
-import { auth, db } from './firebase';
 import WalletConnectModal from './components/WalletConnectModal';
 import { WalletState, watchWalletChanges, checkExistingConnection } from './services/walletService';
 
@@ -187,36 +185,6 @@ useEffect(() => {
   return cleanup;
 }, []);
 
-  // Handle Google sign-in redirect result on page load
-  useEffect(() => {
-    getRedirectResult(auth)
-      .then(async (result) => {
-        if (!result) return;
-        const email = result.user.email || '';
-
-        const { getDoc, doc } = await import('firebase/firestore');
-        const docRef = doc(db, 'users', result.user.uid);
-        const docSnap = await getDoc(docRef);
-
-        if (!docSnap.exists()) {
-          const newProgress = {
-            ...localProgress,
-            onboarded: true,
-            isPro: false,
-            username: email.split('@')[0] || 'NewUser',
-          };
-          await updateProgress(newProgress);
-        }
-
-        window.history.pushState({}, '', '/dashboard');
-        window.dispatchEvent(new PopStateEvent('popstate'));
-      })
-      .catch((error) => {
-        if (error?.code === 'auth/unauthorized-domain') return;
-        console.error('Google redirect sign-in error:', error);
-      });
-  }, []);
-
   const currentTopic = useMemo(() =>
     TOPICS.find(t => t.id === progress.currentTopicId) || TOPICS[0]
   , [progress.currentTopicId]);
@@ -302,16 +270,7 @@ useEffect(() => {
   }
 
   if (currentPath === '/signup') {
-    return <SignupPage 
-      onSignup={async () => {
-        try {
-          const provider = new GoogleAuthProvider();
-          await signInWithRedirect(auth, provider);
-        } catch (error: any) {
-          console.error('Google sign-in error:', error);
-          throw new Error(error.message || 'Failed to initiate Google sign-in.');
-        }
-      }} 
+    return <SignupPage
       onWalletConnect={(address) => {
         const did = `did:ethr:${address}`;
         const saved = localStorage.getItem(`clarix_v1_state_${did}`);

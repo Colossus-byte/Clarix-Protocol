@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'motion/react';
 
 declare global {
@@ -8,47 +8,12 @@ declare global {
 }
 
 interface SignupPageProps {
-  onSignup: (email: string) => Promise<void>;
   onWalletConnect: (address: string) => void;
 }
 
-const SignupPage: React.FC<SignupPageProps> = ({ onSignup, onWalletConnect }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+const SignupPage: React.FC<SignupPageProps> = ({ onWalletConnect }) => {
   const [isConnecting, setIsConnecting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-
-  const handleGoogleLogin = async () => {
-    setIsConnecting(true);
-    setErrorMsg(null);
-    try {
-      await onSignup('');
-    } catch (error: any) {
-      console.error("Google login error:", error);
-      setErrorMsg(error.message || 'Failed to connect with Google. Please try again.');
-    } finally {
-      setIsConnecting(false);
-    }
-  };
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const emailParam = params.get('email');
-    if (emailParam) {
-      setEmail(emailParam);
-    }
-  }, []);
-
-  const handleSignup = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (password !== confirmPassword) {
-      setErrorMsg("Passwords do not match");
-      return;
-    }
-
-    onSignup(email);
-  };
 
   const handleWalletConnect = async (walletType: string) => {
     setErrorMsg(null);
@@ -111,30 +76,11 @@ const SignupPage: React.FC<SignupPageProps> = ({ onSignup, onWalletConnect }) =>
           <p className="text-slate-400 text-sm">Join Clarix Protocol and start your journey.</p>
         </div>
 
-        <div className="space-y-5">
-          {errorMsg && (
-            <div className="bg-red-500/10 border border-red-500/50 text-red-400 px-4 py-3 rounded-xl text-sm font-medium text-center">
-              {errorMsg}
-            </div>
-          )}
-          <button 
-            onClick={handleGoogleLogin}
-            disabled={isConnecting}
-            className="w-full py-4 mt-4 rounded-xl bg-white hover:bg-slate-100 text-black font-black uppercase tracking-widest text-sm transition-all shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(255,255,255,0.2)] hover:scale-[1.02] active:scale-95 flex items-center justify-center gap-3 disabled:opacity-50 disabled:hover:scale-100"
-          >
-            <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5" />
-            {isConnecting ? 'Connecting...' : 'Continue with Google'}
-          </button>
-        </div>
-
-        <div className="relative my-8">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-white/10"></div>
+        {errorMsg && (
+          <div className="bg-red-500/10 border border-red-500/50 text-red-400 px-4 py-3 rounded-xl text-sm font-medium text-center mb-6">
+            {errorMsg}
           </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-4 bg-surface text-slate-500 font-medium uppercase tracking-widest text-xs">Or connect wallet</span>
-          </div>
-        </div>
+        )}
 
         <div className="space-y-3">
           <button 
