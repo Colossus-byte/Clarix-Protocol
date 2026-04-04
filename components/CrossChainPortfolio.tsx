@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
 import { useNewbieMode } from '../contexts/NewbieModeContext';
 import { getCoinPrices } from '../services/marketService';
+import { analyzePortfolio, PortfolioAnalysis } from '../services/claudeService';
 
 interface TokenHolding {
   id: string;
@@ -22,6 +23,8 @@ interface CrossChainPortfolioProps {
   walletAddress?: string;
   onConnectWallet: () => void;
   onFirstAnalysis?: () => void;
+  completedTopics?: string[];
+  username?: string;
 }
 
 const COLORS = {
@@ -31,7 +34,7 @@ const COLORS = {
   Solana: '#14F195',
 };
 
-export default function CrossChainPortfolio({ walletAddress, onConnectWallet, onFirstAnalysis }: CrossChainPortfolioProps) {
+export default function CrossChainPortfolio({ walletAddress, onConnectWallet, onFirstAnalysis, completedTopics = [], username = 'Investor' }: CrossChainPortfolioProps) {
   const { isNewbieMode } = useNewbieMode();
   const [addressInput, setAddressInput] = useState(walletAddress || '');
   const [isFetching, setIsFetching] = useState(false);
@@ -39,6 +42,9 @@ export default function CrossChainPortfolio({ walletAddress, onConnectWallet, on
   const [error, setError] = useState<string | null>(null);
   const [usingMockData, setUsingMockData] = useState(false);
   const [hasAnalyzed, setHasAnalyzed] = useState(false);
+  const [aiAnalysis, setAiAnalysis] = useState<PortfolioAnalysis | null>(null);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
 
   // Sync input with prop
   useEffect(() => {
@@ -177,6 +183,28 @@ export default function CrossChainPortfolio({ walletAddress, onConnectWallet, on
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     fetchPortfolio(addressInput);
+  };
+
+  const handleAiAnalyze = async () => {
+    if (!holdings.length) return;
+    setIsAnalyzing(true);
+    setAnalysisError(null);
+    setAiAnalysis(null);
+    try {
+      const holdingInput = holdings.map(h => ({
+        symbol: h.symbol,
+        chain: h.chain,
+        valueUsd: h.valueUsd,
+        change24h: h.change24h,
+        signal: h.signal,
+      }));
+      const result = await analyzePortfolio(holdingInput, totalValue, completedTopics, username);
+      setAiAnalysis(result);
+    } catch {
+      setAnalysisError('Analysis is unavailable right now. Check your Claude API key or try again shortly.');
+    } finally {
+      setIsAnalyzing(false);
+    }
   };
 
   const totalValue = useMemo(() => holdings.reduce((sum, h) => sum + h.valueUsd, 0), [holdings]);
@@ -425,6 +453,137 @@ export default function CrossChainPortfolio({ walletAddress, onConnectWallet, on
               </table>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* AI Portfolio Advisor */}
+      {holdings.length > 0 && (
+        <div className="mt-8 rounded-[2rem] bg-surface border border-electric-violet/20 overflow-hidden">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 px-6 py-5 border-b border-white/5 bg-electric-violet/5">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-electric-violet/20 border border-electric-violet/30 flex items-center justify-center shrink-0">
+                <i className="fa-solid fa-brain-circuit text-electric-violet text-lg"></i>
+              </div>
+              <div>
+                <h3 className="text-white font-black text-sm tracking-tight">AI Portfolio Advisor</h3>
+                <p className="text-slate-500 text-[10px]">Powered by Claude · personalised to your knowledge level</p>
+              </div>
+            </div>
+            {!aiAnalysis && (
+              <button
+                onClick={handleAiAnalyze}
+                disabled={isAnalyzing}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-electric-violet hover:bg-violet-500 disabled:opacity-60 text-white font-black text-xs uppercase tracking-widest transition-all shadow-lg shadow-electric-violet/20"
+              >
+                {isAnalyzing ? (
+                  <><i className="fa-solid fa-circle-notch fa-spin"></i> Analysing...</>
+                ) : (
+                  <><i className="fa-solid fa-wand-magic-sparkles"></i> Analyse My Portfolio</>
+                )}
+              </button>
+            )}
+            {aiAnalysis && (
+              <button
+                onClick={handleAiAnalyze}
+                disabled={isAnalyzing}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 text-slate-400 font-bold text-xs uppercase tracking-widest transition-all"
+              >
+                <i className="fa-solid fa-rotate text-[10px]"></i> Refresh
+              </button>
+            )}
+          </div>
+
+          {/* Loading skeleton */}
+          {isAnalyzing && (
+            <div className="p-6 space-y-4 animate-pulse">
+              <div className="h-3 w-1/2 bg-white/10 rounded-full"></div>
+              <div className="h-3 w-3/4 bg-white/5 rounded-full"></div>
+              <div className="h-3 w-2/3 bg-white/5 rounded-full"></div>
+              <div className="h-3 w-1/2 bg-white/5 rounded-full"></div>
+              <p className="text-slate-500 text-xs text-center pt-2">Claude is reading your holdings and market conditions...</p>
+            </div>
+          )}
+
+          {/* Error state */}
+          {analysisError && !isAnalyzing && (
+            <div className="p-6 flex items-start gap-3">
+              <i className="fa-solid fa-triangle-exclamation text-rose-400 mt-0.5 shrink-0"></i>
+              <div>
+                <p className="text-rose-400 text-sm font-medium">{analysisError}</p>
+                <button onClick={handleAiAnalyze} className="text-electric-violet text-xs font-bold mt-2 hover:underline">Try again</button>
+              </div>
+            </div>
+          )}
+
+          {/* Analysis results */}
+          {aiAnalysis && !isAnalyzing && (
+            <div className="p-6 space-y-5">
+              {/* Health score bar */}
+              <div className="flex items-center gap-4">
+                <div className="relative w-14 h-14 shrink-0">
+                  <svg viewBox="0 0 56 56" className="w-full h-full -rotate-90">
+                    <circle cx="28" cy="28" r="22" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="5" />
+                    <circle
+                      cx="28" cy="28" r="22" fill="none"
+                      stroke={aiAnalysis.healthScore >= 70 ? '#a3e635' : aiAnalysis.healthScore >= 40 ? '#f59e0b' : '#f43f5e'}
+                      strokeWidth="5" strokeLinecap="round"
+                      strokeDasharray={`${2 * Math.PI * 22}`}
+                      strokeDashoffset={`${2 * Math.PI * 22 * (1 - aiAnalysis.healthScore / 100)}`}
+                      className="transition-all duration-1000"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <span className="text-white font-black text-sm">{aiAnalysis.healthScore}</span>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-white font-black text-base tracking-tight">{aiAnalysis.healthLabel}</p>
+                  <p className="text-slate-400 text-xs leading-relaxed mt-0.5">{aiAnalysis.summary}</p>
+                </div>
+              </div>
+
+              {/* Analysis cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div className="p-4 rounded-xl bg-white/[0.03] border border-white/5">
+                  <p className="text-[9px] font-black text-amber-400 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                    <i className="fa-solid fa-chart-pie"></i> Concentration Risk
+                  </p>
+                  <p className="text-slate-300 text-xs leading-relaxed">{aiAnalysis.concentrationRisk}</p>
+                </div>
+                <div className="p-4 rounded-xl bg-white/[0.03] border border-white/5">
+                  <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                    <i className="fa-solid fa-signal"></i> Market Conditions
+                  </p>
+                  <p className="text-slate-300 text-xs leading-relaxed">{aiAnalysis.marketConditions}</p>
+                </div>
+              </div>
+
+              {/* Recommendation highlight */}
+              <div className="p-4 rounded-xl bg-electric-violet/10 border border-electric-violet/20">
+                <p className="text-[9px] font-black text-electric-violet uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                  <i className="fa-solid fa-lightbulb"></i> Your Next Move
+                </p>
+                <p className="text-white text-sm leading-relaxed font-medium">{aiAnalysis.recommendation}</p>
+              </div>
+
+              {/* Watch out */}
+              <div className="flex items-start gap-3 p-4 rounded-xl bg-rose-500/10 border border-rose-500/20">
+                <i className="fa-solid fa-eye text-rose-400 mt-0.5 shrink-0 text-sm"></i>
+                <div>
+                  <p className="text-[9px] font-black text-rose-400 uppercase tracking-widest mb-1">Watch Out</p>
+                  <p className="text-slate-300 text-xs leading-relaxed">{aiAnalysis.watchOut}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Placeholder if no analysis yet and not loading */}
+          {!aiAnalysis && !isAnalyzing && !analysisError && (
+            <div className="px-6 py-8 text-center">
+              <i className="fa-solid fa-brain-circuit text-electric-violet/30 text-3xl mb-3"></i>
+              <p className="text-slate-500 text-sm">Click "Analyse My Portfolio" to get a personalised AI breakdown of your holdings, risks, and what to do next.</p>
+            </div>
+          )}
         </div>
       )}
     </div>

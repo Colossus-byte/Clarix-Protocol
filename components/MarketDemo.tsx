@@ -1,6 +1,9 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { getTopCoins, type CoinPrice } from '../services/marketService';
+import { generateMarketBrief, type MarketBrief } from '../services/claudeService';
+
+const BRIEF_TTL_MS = 30 * 60 * 1000; // 30 minutes
 
 interface Asset {
   id: string;
@@ -81,6 +84,30 @@ const MarketDemo: React.FC<MarketDemoProps> = ({ progress, onUpdate }) => {
   };
 
   const [isFetching, setIsFetching] = useState(false);
+  const [brief, setBrief] = useState<MarketBrief | null>(null);
+  const [briefLoading, setBriefLoading] = useState(false);
+  const [briefError, setBriefError] = useState<string | null>(null);
+  const briefTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const fetchBrief = async (currentAssets: Asset[]) => {
+    if (!currentAssets.length) return;
+    setBriefLoading(true);
+    setBriefError(null);
+    try {
+      const coins = currentAssets.slice(0, 10).map(a => ({
+        name: a.name,
+        symbol: a.symbol,
+        priceUsd: a.price,
+        change24h: a.change24h,
+      }));
+      const result = await generateMarketBrief(coins);
+      setBrief(result);
+    } catch {
+      setBriefError("Market brief unavailable right now. Check your Claude API key or try again later.");
+    } finally {
+      setBriefLoading(false);
+    }
+  };
 
   const fetchRealData = async () => {
     setIsFetching(true);
@@ -117,6 +144,15 @@ const MarketDemo: React.FC<MarketDemoProps> = ({ progress, onUpdate }) => {
         };
       });
       setAssets(newAssets);
+      // Trigger brief on first successful data load (or if brief is stale)
+      setBrief(prev => {
+        const stale = !prev || (Date.now() - prev.generatedAt > BRIEF_TTL_MS);
+        if (stale) {
+          // Use setTimeout to run after state update
+          setTimeout(() => fetchBrief(newAssets), 0);
+        }
+        return prev;
+      });
     } catch (error) {
       console.error("Failed to fetch market data:", error);
     } finally {
@@ -124,11 +160,22 @@ const MarketDemo: React.FC<MarketDemoProps> = ({ progress, onUpdate }) => {
     }
   };
 
-  // Live data fetching
+  // Live data fetching + brief refresh every 30 min
   useEffect(() => {
     fetchRealData();
-    const interval = setInterval(fetchRealData, 60000); // Update every minute
-    return () => clearInterval(interval);
+    const priceInterval = setInterval(fetchRealData, 60_000);
+    briefTimerRef.current = setInterval(() => {
+      setBrief(prev => {
+        if (!prev || Date.now() - prev.generatedAt > BRIEF_TTL_MS) {
+          fetchBrief(assets);
+        }
+        return prev;
+      });
+    }, BRIEF_TTL_MS);
+    return () => {
+      clearInterval(priceInterval);
+      if (briefTimerRef.current) clearInterval(briefTimerRef.current);
+    };
   }, []);
 
   const filteredAssets = useMemo(() => {
@@ -232,6 +279,72 @@ const MarketDemo: React.FC<MarketDemoProps> = ({ progress, onUpdate }) => {
               </span>
             </button>
           </div>
+        </div>
+
+        {/* AI Daily Market Brief */}
+        <div className="mb-10 rounded-2xl overflow-hidden border border-blue-500/20 bg-blue-500/5">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-blue-500/10">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-blue-500/20 border border-blue-500/30 flex items-center justify-center shrink-0">
+                <i className="fa-solid fa-newspaper text-blue-400 text-sm"></i>
+              </div>
+              <div>
+                <h3 className="text-white font-black text-sm">AI Daily Market Brief</h3>
+                <p className="text-slate-500 text-[10px]">
+                  {brief
+                    ? `Updated ${new Date(brief.generatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} · refreshes every 30 min`
+                    : 'Powered by Claude · plain English market summary'}
+                </p>
+              </div>
+            </div>
+            {brief && !briefLoading && (
+              <button
+                onClick={() => fetchBrief(assets)}
+                className="w-7 h-7 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center hover:bg-white/10 transition-all"
+                title="Refresh brief"
+              >
+                <i className="fa-solid fa-rotate text-slate-400 text-[10px]"></i>
+              </button>
+            )}
+          </div>
+
+          {/* Loading skeleton */}
+          {briefLoading && (
+            <div className="p-5 space-y-3 animate-pulse">
+              <div className="h-4 w-2/3 bg-white/10 rounded-full"></div>
+              <div className="space-y-2">
+                <div className="h-2.5 w-full bg-white/5 rounded-full"></div>
+                <div className="h-2.5 w-5/6 bg-white/5 rounded-full"></div>
+                <div className="h-2.5 w-4/6 bg-white/5 rounded-full"></div>
+              </div>
+              <p className="text-slate-600 text-[10px] text-center pt-1">Claude is analysing today's market data...</p>
+            </div>
+          )}
+
+          {/* Error */}
+          {briefError && !briefLoading && (
+            <div className="p-5 flex items-start gap-3">
+              <i className="fa-solid fa-triangle-exclamation text-rose-400 mt-0.5 shrink-0 text-sm"></i>
+              <div>
+                <p className="text-rose-400 text-xs leading-relaxed">{briefError}</p>
+                <button onClick={() => fetchBrief(assets)} className="text-blue-400 text-xs font-bold mt-2 hover:underline">
+                  Retry
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Brief content */}
+          {brief && !briefLoading && (
+            <div className="p-5 space-y-4">
+              <p className="text-white font-black text-base leading-snug">{brief.headline}</p>
+              <div className="space-y-3 text-slate-300 text-sm leading-relaxed">
+                <p>{brief.paragraph1}</p>
+                <p>{brief.paragraph2}</p>
+                <p className="text-slate-400">{brief.paragraph3}</p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Data Table */}

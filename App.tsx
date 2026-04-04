@@ -775,6 +775,8 @@ useEffect(() => {
               walletAddress={progress.walletAddress}
               onConnectWallet={connectWallet}
               onFirstAnalysis={() => awardCredential('portfolio-analyst')}
+              completedTopics={progress.completedTopics}
+              username={progress.username}
             />
           )}
           {activeView === 'peers' && <PeerNexus progress={progress} onSendMessage={() => {}} onSendTokens={() => {}} />}
@@ -824,7 +826,25 @@ useEffect(() => {
         <i className={`fa-solid ${isAiOpen ? 'fa-xmark' : 'fa-brain-circuit'} text-lg md:text-xl`}></i>
       </div>
 
-      <AIAssistant isOpen={isAiOpen} onClose={() => setIsAiOpen(false)} currentContext={currentSubtopic.content} language={progress.language} />
+      <AIAssistant
+        isOpen={isAiOpen}
+        onClose={() => setIsAiOpen(false)}
+        currentContext={currentSubtopic.content}
+        language={progress.language}
+        holdingsSummary={
+          progress.walletAddress
+            ? `Wallet: ${progress.walletAddress.slice(0, 6)}...${progress.walletAddress.slice(-4)} (connect to Portfolio tab to see balances)`
+            : 'No portfolio connected'
+        }
+        credentialLevel={
+          (progress.earnedCredentialIds || []).includes('protocol-architect') ? 'Level 4 — Protocol Architect' :
+          (progress.earnedCredentialIds || []).includes('defi-practitioner') ? 'Level 3 — DeFi Practitioner' :
+          (progress.earnedCredentialIds || []).includes('market-navigator') ? 'Level 2 — Market Navigator' :
+          (progress.earnedCredentialIds || []).includes('crypto-foundations') ? 'Level 1 — Crypto Foundations' :
+          'Beginner (no credentials yet)'
+        }
+        topCoinsSummary={undefined}
+      />
     </div>
   );
 };

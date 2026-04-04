@@ -344,7 +344,192 @@ Answer their question in plain, conversational English. Max 3 short paragraphs. 
   }
 }
 
-// ─── 7. Smart Contract Audit Summary ─────────────────────────────────────────
+// ─── 7. Portfolio Analysis ────────────────────────────────────────────────────
+export interface PortfolioAnalysis {
+  healthScore: number;          // 0–100
+  healthLabel: string;          // e.g. "Well-diversified"
+  summary: string;              // 2-sentence overall take
+  concentrationRisk: string;    // plain-English risk note
+  marketConditions: string;     // what current prices mean for their specific holdings
+  recommendation: string;       // one actionable step tailored to knowledge level
+  watchOut: string;             // one key risk to watch
+}
+
+export async function analyzePortfolio(
+  holdings: { symbol: string; chain: string; valueUsd: number; change24h: number; signal: string }[],
+  totalValueUsd: number,
+  completedLevels: string[],  // e.g. ['b1', 'f1']
+  username: string
+): Promise<PortfolioAnalysis> {
+  const levelLabel =
+    completedLevels.includes('p1') ? 'advanced (Level 4)' :
+    completedLevels.includes('m1') ? 'intermediate (Level 3)' :
+    completedLevels.includes('f1') ? 'developing (Level 2)' :
+    'beginner (Level 1)';
+
+  const holdingsSummary = holdings
+    .map(h => `${h.symbol} on ${h.chain}: $${h.valueUsd.toFixed(0)} (${h.change24h >= 0 ? '+' : ''}${h.change24h.toFixed(1)}% 24h, signal: ${h.signal})`)
+    .join('\n');
+
+  const system = `You are Clarix AI, a friendly and practical crypto portfolio advisor. Your job is to give honest, plain-English analysis that a real person can act on.
+Never use unexplained jargon. Always be encouraging but honest about risks. Tailor complexity to the user's knowledge level.
+Respond ONLY with valid JSON. No markdown fences, no preamble.`;
+
+  const user = `Analyze this crypto portfolio and give personalized advice.
+
+User: ${username}
+Knowledge level: ${levelLabel}
+Total portfolio value: $${totalValueUsd.toFixed(2)}
+
+Holdings:
+${holdingsSummary}
+
+Return this exact JSON (all fields required, plain English, no jargon):
+{
+  "healthScore": 0-100,
+  "healthLabel": "Short label like 'Healthy & Growing' or 'High Concentration Risk'",
+  "summary": "2 sentences: what the portfolio looks like overall",
+  "concentrationRisk": "Plain English: is too much in one coin or chain? Is that a problem?",
+  "marketConditions": "What do today's 24h price moves mean specifically for these holdings? Be concrete.",
+  "recommendation": "${levelLabel.includes('beginner') || levelLabel.includes('developing') ? 'Simple, beginner-friendly action — avoid technical terms' : 'More specific action — can mention on-chain mechanics or protocol names'}",
+  "watchOut": "One key risk they should watch in the next 24-48 hours"
+}`;
+
+  try {
+    const raw = await callClaude(system, user, 900);
+    const parsed = JSON.parse(stripJsonFences(raw));
+    if (parsed.healthScore !== undefined && parsed.recommendation) return parsed;
+    throw new Error('Invalid portfolio analysis format');
+  } catch (err) {
+    console.error('Portfolio analysis failed:', err);
+    const topHolding = holdings.sort((a, b) => b.valueUsd - a.valueUsd)[0];
+    return {
+      healthScore: 55,
+      healthLabel: 'Analysis Unavailable',
+      summary: `Your portfolio holds ${holdings.length} asset${holdings.length !== 1 ? 's' : ''} across multiple chains with a total value of $${totalValueUsd.toFixed(2)}. Analysis service is temporarily unavailable.`,
+      concentrationRisk: topHolding
+        ? `${topHolding.symbol} makes up the largest portion of your holdings. Diversification across multiple assets can reduce risk.`
+        : 'Unable to assess concentration at this time.',
+      marketConditions: 'Market data analysis is temporarily unavailable. Check back shortly.',
+      recommendation: 'Review your portfolio allocation and ensure you are not over-exposed to any single asset.',
+      watchOut: 'Monitor your largest holdings for significant price movements.',
+    };
+  }
+}
+
+// ─── 8. Daily Market Brief ────────────────────────────────────────────────────
+export interface MarketBrief {
+  headline: string;          // punchy 1-line summary of today
+  paragraph1: string;        // what is happening in the market today
+  paragraph2: string;        // what is driving the moves
+  paragraph3: string;        // what a retail investor should be aware of
+  generatedAt: number;       // timestamp
+}
+
+export async function generateMarketBrief(
+  coins: { name: string; symbol: string; priceUsd: number; change24h: number }[]
+): Promise<MarketBrief> {
+  const coinData = coins
+    .slice(0, 10)
+    .map(c => `${c.name} (${c.symbol.toUpperCase()}): $${c.priceUsd.toLocaleString()} | 24h: ${c.change24h >= 0 ? '+' : ''}${c.change24h.toFixed(2)}%`)
+    .join('\n');
+
+  const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+
+  const system = `You are Clarix Market Intelligence — a sharp, plain-English crypto market analyst writing a daily briefing for everyday investors.
+Write like a knowledgeable friend explaining the market over coffee. No hype, no jargon without explanation, no financial advice disclaimers.
+Respond ONLY with valid JSON. No markdown fences.`;
+
+  const user = `Write a daily market brief for ${today} based on these top 10 cryptocurrency prices and 24-hour movements:
+
+${coinData}
+
+Return this exact JSON:
+{
+  "headline": "One punchy sentence summarising the market mood today (max 12 words)",
+  "paragraph1": "2-3 sentences: what is happening in the market right now — plain English, reference specific coins from the data",
+  "paragraph2": "2-3 sentences: what is most likely driving these moves — mention macro factors, sentiment, or on-chain reasons in plain terms",
+  "paragraph3": "2-3 sentences: what a regular retail investor should be aware of or think about given today's data — practical and grounded"
+}`;
+
+  try {
+    const raw = await callClaude(system, user, 700);
+    const parsed = JSON.parse(stripJsonFences(raw));
+    if (parsed.headline && parsed.paragraph1) {
+      return { ...parsed, generatedAt: Date.now() };
+    }
+    throw new Error('Invalid market brief format');
+  } catch (err) {
+    console.error('Market brief generation failed:', err);
+    const gainers = coins.filter(c => c.change24h > 0).length;
+    const losers = coins.filter(c => c.change24h < 0).length;
+    return {
+      headline: gainers > losers ? 'More green than red across major crypto markets today.' : 'Markets trading cautiously with mixed signals.',
+      paragraph1: `Of the top 10 cryptocurrencies tracked today, ${gainers} are trading higher and ${losers} are lower in the past 24 hours. Bitcoin and Ethereum remain the bellwethers for market direction.`,
+      paragraph2: 'Price movements in crypto are often driven by a mix of broader market sentiment, news flow, and on-chain activity. Without a clear macro catalyst, price action tends to follow technical levels and trading patterns.',
+      paragraph3: 'For retail investors, days like today are a reminder to focus on your long-term thesis rather than short-term swings. Avoid making decisions based on single-day price moves alone.',
+      generatedAt: Date.now(),
+    };
+  }
+}
+
+// ─── 9. Context-Aware AI Chat ─────────────────────────────────────────────────
+export async function generatePortfolioAwareResponse(
+  userMessage: string,
+  context: {
+    holdingsSummary: string;
+    credentialLevel: string;
+    topCoinsSummary: string;
+    language: Language;
+  },
+  chatHistory: { role: 'user' | 'assistant'; content: string }[] = []
+): Promise<string> {
+  const langLabel =
+    context.language === Language.EN ? 'English' :
+    context.language === Language.ES ? 'Spanish' :
+    context.language === Language.FR ? 'French' : 'Chinese';
+
+  const system = `You are Clarix AI — a friendly, knowledgeable crypto intelligence assistant.
+
+User context:
+- Knowledge level: ${context.credentialLevel}
+- Portfolio: ${context.holdingsSummary || 'No portfolio connected yet'}
+- Current top coin prices (24h change): ${context.topCoinsSummary || 'Not available'}
+
+Rules:
+1. Always respond in ${langLabel}
+2. Never use unexplained jargon — if you must use a technical term, define it in brackets
+3. Always end your response with "**Takeaway:** [one clear, specific action or key point]"
+4. Tailor complexity to the user's knowledge level (${context.credentialLevel})
+5. Keep responses to 3 paragraphs or fewer unless the user explicitly asks for more detail
+6. Be direct, warm, and practical — like a knowledgeable friend, not a financial advisor`;
+
+  const messages = [
+    ...chatHistory.map(m => ({ role: m.role, content: m.content })),
+    { role: 'user' as const, content: userMessage },
+  ];
+
+  const apiKey = import.meta.env.VITE_CLAUDE_API_KEY;
+  if (!apiKey) throw new Error('VITE_CLAUDE_API_KEY not set');
+
+  const response = await fetch(CLAUDE_API_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
+    body: JSON.stringify({ model: MODEL, max_tokens: 1000, system, messages }),
+  });
+
+  if (!response.ok) throw new Error(`Claude API error: ${response.status}`);
+  const data = await response.json();
+  const textBlock = data.content?.find((block: any) => block.type === 'text');
+  return textBlock?.text || 'I encountered an issue. Please try again.';
+}
+
+// ─── 10. Smart Contract Audit Summary ─────────────────────────────────────────
 export async function generateAuditSummary(contractCode: string): Promise<string> {
   const system = `You are a smart contract security expert on the Clarix platform.
 Analyze smart contract code and provide a clear, educational security assessment.

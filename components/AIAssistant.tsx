@@ -1,8 +1,8 @@
 // components/AIAssistant.tsx
-// Clarix — Claude-powered AI Assistant with multi-turn conversation
+// Clarix — Claude-powered AI Assistant with portfolio + market context
 
 import React, { useState, useRef, useEffect } from 'react';
-import { generateAIResponse } from '../services/claudeService';
+import { generatePortfolioAwareResponse } from '../services/claudeService';
 import { Language } from '../types';
 
 interface ChatMessage {
@@ -16,17 +16,21 @@ interface Props {
   onClose: () => void;
   currentContext: string;
   language: Language;
+  // Context enrichment
+  holdingsSummary?: string;       // e.g. "BTC $4,200 | ETH $1,100"
+  credentialLevel?: string;       // e.g. "Level 2 — Practical"
+  topCoinsSummary?: string;       // e.g. "BTC +2.1% | ETH -0.4% ..."
 }
 
 const SUGGESTED_PROMPTS = [
-  'Explain this in simple terms',
-  'How does this apply to African markets?',
-  'What are the risks I should know?',
-  'Give me a real-world example',
-  'How do I get started with this?',
+  'What should I do with my portfolio today?',
+  'Explain Bitcoin in one paragraph',
+  'What is DeFi and should I try it?',
+  'What are the biggest risks right now?',
+  'How do I read a price chart?',
 ];
 
-const AIAssistant: React.FC<Props> = ({ isOpen, onClose, currentContext, language }) => {
+const AIAssistant: React.FC<Props> = ({ isOpen, onClose, currentContext, language, holdingsSummary, credentialLevel, topCoinsSummary }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -49,9 +53,12 @@ const AIAssistant: React.FC<Props> = ({ isOpen, onClose, currentContext, languag
   // Welcome message on first open
   useEffect(() => {
     if (isOpen && messages.length === 0) {
+      const hasPortfolio = holdingsSummary && holdingsSummary !== 'No portfolio connected';
       setMessages([{
         role: 'assistant',
-        content: "Hello! I'm Clarix AI, your crypto intelligence assistant. I'm here to help you understand what you're learning and navigate the crypto landscape — with a special focus on what matters for African investors. What would you like to explore?",
+        content: hasPortfolio
+          ? `Hey! I'm Clarix AI. I can see your portfolio and the current market prices, so I'm ready to give you personalised answers. What would you like to know?`
+          : `Hey! I'm Clarix AI, your crypto intelligence assistant. Ask me anything about crypto — I'll always give you plain English answers with one clear takeaway. What's on your mind?`,
         timestamp: new Date(),
       }]);
     }
@@ -77,10 +84,14 @@ const AIAssistant: React.FC<Props> = ({ isOpen, onClose, currentContext, languag
         .filter(m => !(m.role === 'assistant' && messages.indexOf(m) === 0))
         .map(m => ({ role: m.role, content: m.content }));
 
-      const response = await generateAIResponse(
+      const response = await generatePortfolioAwareResponse(
         text.trim(),
-        currentContext,
-        language,
+        {
+          holdingsSummary: holdingsSummary || 'No portfolio connected yet',
+          credentialLevel: credentialLevel || 'Beginner',
+          topCoinsSummary: topCoinsSummary || 'Not available',
+          language,
+        },
         history
       );
 
