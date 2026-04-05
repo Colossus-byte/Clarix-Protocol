@@ -28,7 +28,6 @@ import ZkPrivacyCloak from './components/ZkPrivacyCloak';
 import AiSentimentOracle from './components/AiSentimentOracle';
 import ClarixAtlas from './components/ClarixAtlas';
 import ClarixHero from './components/ClarixHero';
-import ProFeatureWrapper from './components/ProFeatureWrapper';
 import InvestorsPage from './components/InvestorsPage';
 import MarketDemo from './components/MarketDemo';
 import SignupPage from './components/SignupPage';
@@ -450,13 +449,6 @@ useEffect(() => {
     });
   };
 
-  const togglePro = () => {
-    setProgress(p => {
-      const newState = !p.isPro;
-      addNotification('Institutional Calibration', newState ? 'Clarix Pro Activated' : 'Standard Node Active', 'success');
-      return { ...p, isPro: newState };
-    });
-  };
 
   if (currentPath === '/investors') {
     return <InvestorsPage />;
@@ -666,19 +658,6 @@ useEffect(() => {
           </div>
         </header>
 
-        {!progress.isPro && (
-          <div className="w-full bg-[#0f172a] border-b border-hyper-gold/20 px-4 py-3 flex flex-col sm:flex-row items-center justify-center gap-4 text-center z-30 relative shrink-0">
-            <p className="text-sm text-slate-300">
-              <span className="font-bold text-white">You're on the Free Plan.</span> Upgrade to Pro for full AI signals and advanced analytics.
-            </p>
-            <button 
-              onClick={togglePro}
-              className="px-4 py-1.5 rounded-full bg-hyper-gold hover:bg-amber-400 text-[#0f172a] font-bold text-xs uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(245,158,11,0.3)] shrink-0"
-            >
-              Upgrade Now
-            </button>
-          </div>
-        )}
 
         <div className="flex-1 w-full max-w-6xl mx-auto px-4 md:px-12 py-6 md:py-16">
           {activeView === 'academy' && (
@@ -751,12 +730,10 @@ useEffect(() => {
                     <ActivityFeed />
                     <GuildLeaderboard progress={progress} />
                     <ZkPrivacyCloak isActive={progress.isPrivate} onToggle={togglePrivacy} />
-                    <ProFeatureWrapper isPro={progress.isPro} featureName={tTerm("Neural Network Analytics")} onUpgrade={togglePro}>
-                      <AiSentimentOracle
-  userRole={progress.guild !== 'NONE' ? progress.guild : 'Investor'}
-  completedTopics={progress.completedTopics}
-/>
-                    </ProFeatureWrapper>
+                    <AiSentimentOracle
+                      userRole={progress.guild !== 'NONE' ? progress.guild : 'Investor'}
+                      completedTopics={progress.completedTopics}
+                    />
                     <PortfolioTracker progress={progress} onUpdate={(u) => setProgress(p => ({ ...p, ...u }))} />
                     <SkillSpider metrics={progress.metrics} />
                   </>
@@ -766,9 +743,7 @@ useEffect(() => {
           )}
 
           {activeView === 'market' && (
-            <ProFeatureWrapper isPro={progress.isPro} featureName={tTerm("Market Intelligence Feed")} onUpgrade={togglePro}>
-              <MarketDemo progress={progress} onUpdate={(u) => setProgress(p => ({ ...p, ...u }))} />
-            </ProFeatureWrapper>
+            <MarketDemo progress={progress} onUpdate={(u) => setProgress(p => ({ ...p, ...u }))} />
           )}
           {activeView === 'portfolio' && (
             <CrossChainPortfolio
@@ -781,9 +756,7 @@ useEffect(() => {
           )}
           {activeView === 'peers' && <PeerNexus progress={progress} onSendMessage={() => {}} onSendTokens={() => {}} />}
           {activeView === 'institutional' && (
-            <ProFeatureWrapper isPro={progress.isPro} featureName="Institutional Portal" onUpgrade={togglePro}>
-              <InstitutionalPortal isPro={true} onTogglePro={togglePro} />
-            </ProFeatureWrapper>
+            <InstitutionalPortal />
           )}
           {activeView === 'guilds' && <GuildHub progress={progress} onJoinGuild={(g) => setProgress(p => ({ ...p, guild: g }))} />}
           {activeView === 'governance' && (

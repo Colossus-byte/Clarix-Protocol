@@ -4,12 +4,9 @@ import SkillSpider from './SkillSpider';
 import GlobalLeaderboard from './GlobalLeaderboard';
 import { GoogleGenAI } from "@google/genai";
 
-interface InstitutionalPortalProps {
-  isPro?: boolean;
-  onTogglePro?: () => void;
-}
+interface InstitutionalPortalProps {}
 
-const InstitutionalPortal: React.FC<InstitutionalPortalProps> = ({ isPro, onTogglePro }) => {
+const InstitutionalPortal: React.FC<InstitutionalPortalProps> = () => {
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [aiInsight, setAiInsight] = useState<string | null>(null);
 
@@ -35,48 +32,6 @@ const InstitutionalPortal: React.FC<InstitutionalPortalProps> = ({ isPro, onTogg
     }
   };
 
-  if (!isPro) {
-    return (
-      <div className="mt-12 md:mt-24 page-transition flex flex-col items-center justify-center text-center max-w-2xl mx-auto space-y-8 md:space-y-12">
-        <div className="w-20 h-20 md:w-24 md:h-24 rounded-[2.5rem] bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 shadow-[0_0_50px_rgba(99,102,241,0.1)]">
-          <i className="fa-solid fa-lock text-3xl md:text-4xl"></i>
-        </div>
-        
-        <div>
-          <h3 className="text-[10px] md:text-[12px] font-black uppercase tracking-[0.5em] text-indigo-500 mb-4">Access Restricted</h3>
-          <h2 className="text-4xl md:text-6xl font-black text-white tracking-tighter leading-none mb-6">VANTA INSTITUTIONAL</h2>
-          <p className="text-slate-400 text-lg md:text-xl leading-relaxed">
-            Unlock the full potential of your organization. Advanced team metrics, global consensus rankings, and enterprise-grade calibration tools.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full">
-          <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/5">
-            <i className="fa-solid fa-users-gear text-indigo-400 mb-4 text-xl"></i>
-            <p className="text-[10px] font-black text-white uppercase tracking-widest">Team Sync</p>
-          </div>
-          <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/5">
-            <i className="fa-solid fa-ranking-star text-cyber-lime mb-4 text-xl"></i>
-            <p className="text-[10px] font-black text-white uppercase tracking-widest">Global Rank</p>
-          </div>
-          <div className="p-6 rounded-3xl bg-white/[0.02] border border-white/5">
-            <i className="fa-solid fa-shield-check text-emerald-400 mb-4 text-xl"></i>
-            <p className="text-[10px] font-black text-white uppercase tracking-widest">Audit Logs</p>
-          </div>
-        </div>
-
-        <button 
-          onClick={onTogglePro}
-          className="w-full py-5 md:py-7 rounded-2xl md:rounded-[2.5rem] bg-indigo-500 text-white font-black uppercase tracking-[0.3em] text-[10px] md:text-xs shadow-2xl shadow-indigo-500/40 hover:scale-[1.02] active:scale-95 transition-all"
-        >
-          Upgrade to Institutional Node
-        </button>
-        
-        <p className="text-[8px] font-black text-slate-600 uppercase tracking-widest">Requires 5,000 $PATH or Enterprise License</p>
-      </div>
-    );
-  }
-
   return (
     <div className="mt-12 md:mt-24 page-transition space-y-12 md:space-y-24">
       {/* Hero Section */}
@@ -100,13 +55,6 @@ const InstitutionalPortal: React.FC<InstitutionalPortalProps> = ({ isPro, onTogg
               <i className="fa-solid fa-building text-slate-400 text-xs md:text-sm"></i>
             </div>
           </div>
-          <button 
-            onClick={onTogglePro}
-            className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-500 flex items-center justify-center hover:bg-rose-500 hover:text-white transition-all"
-            title="Downgrade Node"
-          >
-            <i className="fa-solid fa-power-off"></i>
-          </button>
         </div>
       </div>
 

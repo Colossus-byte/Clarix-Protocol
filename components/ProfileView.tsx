@@ -63,30 +63,17 @@ const ProfileView: React.FC<ProfileViewProps> = ({ progress, onUpdate }) => {
           <h3 className="terminal-text text-[8px] md:text-[10px] uppercase tracking-[0.4em] mb-2 md:mb-4">Neural Signature</h3>
           <ClarixPass progress={progress} />
           
-          {progress.isPro ? (
-            <div className="p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] bg-indigo-500/10 border border-indigo-500/20 w-full flex items-center gap-4 md:gap-6 group">
-              <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-indigo-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20 group-hover:scale-110 transition-transform">
-                <i className="fa-solid fa-briefcase text-xl md:text-2xl"></i>
-              </div>
-              <div>
-                <p className="text-[8px] md:text-[10px] font-black text-indigo-400 uppercase tracking-[0.4em] mb-1">Status: Institutional</p>
-                <h4 className="text-lg md:text-xl font-black text-white tracking-tighter uppercase italic">Clarix Pro Node</h4>
-              </div>
+          <div className="p-5 md:p-6 rounded-[2rem] md:rounded-[2.5rem] bg-cyber-lime/5 border border-cyber-lime/20 w-full flex items-start gap-4">
+            <div className="w-10 h-10 rounded-xl bg-cyber-lime/10 flex items-center justify-center shrink-0 mt-0.5">
+              <i className="fa-solid fa-rocket text-cyber-lime text-sm"></i>
             </div>
-          ) : (
-            <div className="p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] bg-white/[0.02] border border-white/5 w-full flex flex-col items-center text-center space-y-4 md:space-y-6">
-              <div className="w-12 h-12 md:w-14 md:h-14 rounded-2xl bg-white/5 flex items-center justify-center text-slate-500 border border-white/10">
-                <i className="fa-solid fa-lock text-xl md:text-2xl"></i>
-              </div>
-              <div>
-                <p className="text-[8px] md:text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] mb-1">Status: Standard</p>
-                <h4 className="text-lg md:text-xl font-black text-white tracking-tighter uppercase italic">Community Node</h4>
-              </div>
-              <p className="text-[9px] md:text-[10px] text-slate-500 font-medium leading-relaxed px-4">
-                Upgrade to Institutional for advanced team metrics and global rankings.
+            <div>
+              <p className="text-[8px] md:text-[9px] font-black text-cyber-lime uppercase tracking-[0.3em] mb-1">Beta Access</p>
+              <p className="text-[10px] md:text-xs text-slate-300 leading-relaxed">
+                Clarix is completely free during beta. All features are unlocked. Paid plans will be introduced after beta based on community feedback.
               </p>
             </div>
-          )}
+          </div>
           
           <div className="p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] bg-white/[0.02] border border-white/5 w-full">
             <h4 className="text-[8px] md:text-[9px] font-black text-slate-600 uppercase tracking-widest mb-4 md:mb-6">Reputation Breakdown</h4>
