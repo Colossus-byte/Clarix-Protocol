@@ -598,62 +598,65 @@ useEffect(() => {
           onLanguageChange={(l) => setProgress(p => ({ ...p, language: l }))}
           activeTopicId={currentTopic.id}
           activeView={activeView}
-          onClose={() => setIsSidebarOpen(false)}
         />
       </div>
 
       <NotificationSystem notifications={progress.notifications} onDismiss={dismissNotification} />
 
       <main className="flex-1 overflow-y-auto no-scrollbar relative flex flex-col">
-        <header className="h-16 md:h-24 border-b border-white/5 flex items-center justify-between px-4 md:px-12 bg-black/40 backdrop-blur-xl sticky top-0 z-40 shrink-0">
-          <div className="flex items-center gap-3 md:gap-12">
-            <button 
+        <header className="h-14 md:h-16 border-b border-white/[0.04] flex items-center justify-between px-4 md:px-8 bg-[#0A0A0F]/80 backdrop-blur-xl sticky top-0 z-40 shrink-0">
+          <div className="flex items-center gap-3 md:gap-6">
+            <button
               onClick={() => setIsSidebarOpen(true)}
-              className="md:hidden w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white"
+              className="md:hidden w-8 h-8 rounded-lg bg-white/[0.04] border border-white/[0.06] flex items-center justify-center text-slate-400 hover:text-white transition-colors"
             >
-              <i className="fa-solid fa-bars-staggered text-sm"></i>
+              <i className="fa-solid fa-bars text-sm"></i>
             </button>
 
-            <div onClick={() => setActiveView('profile')} className="flex items-center gap-2 md:gap-4 cursor-pointer group">
-              <div className={`w-8 h-8 md:w-12 md:h-12 rounded-full border-2 overflow-hidden transition-all duration-500 ${progress.isPrivate ? 'border-electric-violet blur-sm' : 'border-cyber-lime/30 group-hover:border-cyber-lime'}`}>
+            <div onClick={() => setActiveView('profile')} className="flex items-center gap-2.5 cursor-pointer group">
+              <div className={`w-8 h-8 rounded-full overflow-hidden ring-1 transition-all duration-300 ${progress.isPrivate ? 'ring-indigo-500/50 blur-sm' : 'ring-white/10 group-hover:ring-indigo-500/40'}`}>
                 <img src={progress.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
               </div>
               <div className="hidden sm:block">
-                <p className="terminal-text text-[8px] md:text-[10px] uppercase tracking-widest mb-0.5 md:mb-1 opacity-50">Identity Proxy</p>
-                <h2 className="text-white font-bold tracking-tighter text-xs md:text-sm uppercase group-hover:text-cyber-lime transition-colors flex items-center gap-2">
-                  {progress.isPrivate ? 'ZK_ENTITY_ANON' : progress.username}
+                <p className="text-sm font-semibold text-white group-hover:text-indigo-300 transition-colors leading-none">
+                  {progress.isPrivate ? 'Anonymous' : progress.username}
+                </p>
+                <div className="flex items-center gap-1.5 mt-0.5">
                   {progress.did && (
-                    <span className="bg-cyber-lime/20 text-cyber-lime px-1.5 py-0.5 rounded text-[8px] tracking-widest border border-cyber-lime/30 flex items-center gap-1">
-                      <i className="fa-solid fa-check-circle"></i> Verified User
+                    <span className="text-[10px] text-indigo-400 flex items-center gap-1">
+                      <i className="fa-solid fa-circle-check text-[8px]"></i> Verified
                     </span>
                   )}
-                </h2>
-                {progress.walletAddress && (
-                  <p className="text-blue-500 text-[10px] font-mono mt-0.5 bg-blue-500/10 px-1.5 py-0.5 rounded w-fit border border-blue-500/20">
-                    {progress.walletAddress.slice(0, 6)}...{progress.walletAddress.slice(-4)}
-                  </p>
-                )}
+                  {progress.walletAddress && (
+                    <span className="text-[10px] text-slate-500 font-mono">
+                      {progress.walletAddress.slice(0, 6)}…{progress.walletAddress.slice(-4)}
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
-            <div className="hidden md:block h-8 w-px bg-white/10"></div>
-            <button 
+
+            <div className="hidden md:block h-5 w-px bg-white/[0.06]"></div>
+            <button
               onClick={() => setShowManifesto(true)}
-              className="hidden lg:block px-3 md:px-4 py-1.5 md:py-2 rounded-xl bg-white/5 border border-white/10 text-[7px] md:text-[8px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-all"
+              className="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-lg border border-white/[0.06] text-xs text-slate-500 hover:text-slate-300 hover:border-white/10 transition-all"
             >
-              Protocol Manifesto
+              <i className="fa-solid fa-scroll text-[10px]"></i>
+              Manifesto
             </button>
           </div>
 
-          <div className="flex items-center gap-2 md:gap-4 flex-wrap justify-end">
+          <div className="flex items-center gap-2 md:gap-3">
             <div className="hidden sm:block">
               <NewbieToggle />
             </div>
             <div className="hidden md:block">
               <StreakBadge streak={progress.streak || 0} lastActiveDate={progress.lastActiveDate || ''} xp={progress.xp || 0} />
             </div>
-            <div className="flex items-center gap-2 md:gap-3 bg-white/5 px-3 md:px-5 py-1.5 md:py-2.5 rounded-full border border-white/10">
-              <i className="fa-solid fa-coins text-cyber-lime text-[10px] md:text-sm"></i>
-              <span className="text-xs md:text-base font-bold text-white tracking-tighter">{progress.tokenBalance.toLocaleString()} <span className="text-[7px] md:text-[10px] text-slate-500">$PATH</span></span>
+            <div className="flex items-center gap-1.5 md:gap-2 bg-indigo-500/10 px-3 py-1.5 rounded-lg border border-indigo-500/20">
+              <i className="fa-solid fa-coins text-indigo-400 text-xs"></i>
+              <span className="text-sm font-semibold text-white">{progress.tokenBalance.toLocaleString()}</span>
+              <span className="text-[10px] text-indigo-400/70 font-medium">$PATH</span>
             </div>
           </div>
         </header>
@@ -679,11 +682,11 @@ useEffect(() => {
                   <Quiz questions={quizQuestions} onComplete={handleQuizComplete} onCancel={() => setIsQuizMode(false)} />
                 ) : (
                   <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
-                    <div className="flex items-center gap-3 mb-6 md:mb-8">
-                      <span className="px-2 md:px-3 py-1 bg-white/5 border border-white/10 rounded-lg text-[8px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                    <div className="flex items-center gap-2 mb-6 md:mb-8">
+                      <span className="px-2.5 py-1 bg-white/[0.04] border border-white/[0.07] rounded-md text-[11px] font-medium text-slate-400">
                         {currentTopic.difficulty}
                       </span>
-                      <span className="text-[8px] md:text-[10px] font-bold text-electric-violet uppercase tracking-[0.2em]">{currentTopic.category}</span>
+                      <span className="text-[11px] font-medium text-indigo-400">{currentTopic.category}</span>
                     </div>
 
                     <h1 className="text-4xl md:text-7xl font-bold text-white mb-8 md:mb-12 tracking-tighter leading-none">{currentSubtopic.title}</h1>
@@ -698,7 +701,7 @@ useEffect(() => {
                       <button
                         onClick={handleNext}
                         disabled={isGeneratingQuiz}
-                        className="w-full sm:w-auto px-8 md:px-16 py-4 md:py-6 bg-cyber-lime text-black font-black uppercase tracking-widest text-[10px] md:text-xs rounded-2xl md:rounded-3xl hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-4 disabled:opacity-50"
+                        className="w-full sm:w-auto px-8 md:px-12 py-3.5 md:py-4 bg-indigo-500 hover:bg-indigo-400 text-white font-semibold text-sm rounded-xl transition-all flex items-center justify-center gap-3 disabled:opacity-50 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30"
                       >
                         {isGeneratingQuiz ? (
                           <><i className="fa-solid fa-circle-notch fa-spin"></i> Generating Quiz...</>
@@ -792,8 +795,8 @@ useEffect(() => {
 
       <div 
         onClick={() => setIsAiOpen(!isAiOpen)}
-        className={`fixed right-6 md:left-12 bottom-6 md:bottom-12 w-14 h-14 md:w-16 md:h-16 rounded-2xl flex items-center justify-center cursor-pointer transition-all duration-500 z-[50] ${
-          isAiOpen ? 'bg-white text-black scale-90' : 'bg-electric-violet text-white shadow-[0_0_30px_rgba(139,92,246,0.4)] hover:scale-110'
+        className={`fixed right-5 md:right-6 bottom-5 md:bottom-8 w-12 h-12 md:w-14 md:h-14 rounded-xl flex items-center justify-center cursor-pointer transition-all duration-300 z-[50] shadow-lg ${
+          isAiOpen ? 'bg-white/10 text-white border border-white/20 scale-95' : 'bg-indigo-500 text-white shadow-indigo-500/30 hover:bg-indigo-400 hover:scale-105'
         }`}
       >
         <i className={`fa-solid ${isAiOpen ? 'fa-xmark' : 'fa-brain-circuit'} text-lg md:text-xl`}></i>

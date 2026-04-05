@@ -138,7 +138,7 @@ const AdminPage: React.FC = () => {
           {pinError && <p className="text-rose-400 text-xs mb-3">Incorrect key</p>}
           <button
             onClick={handleUnlock}
-            className="w-full py-2.5 rounded-xl bg-cyber-lime text-black font-black text-xs uppercase tracking-widest hover:opacity-90 transition-all"
+            className="w-full py-2.5 rounded-xl bg-cyber-lime text-white font-black text-xs uppercase tracking-widest hover:opacity-90 transition-all"
           >
             Unlock
           </button>

@@ -42,7 +42,7 @@ const RichContent: React.FC<RichContentProps> = ({ content }) => {
                   href={url} 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className={`text-[9px] font-black text-cyber-lime uppercase tracking-widest hover:text-black transition-all flex items-center gap-1 px-1.5 py-0.5 rounded bg-cyber-lime/5 border border-cyber-lime/10 hover:bg-cyber-lime hover:border-cyber-lime ${isExplicit ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                  className={`text-[9px] font-black text-cyber-lime uppercase tracking-widest hover:text-white transition-all flex items-center gap-1 px-1.5 py-0.5 rounded bg-cyber-lime/5 border border-cyber-lime/10 hover:bg-cyber-lime hover:border-cyber-lime ${isExplicit ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
                 >
                   {isExplicit ? 'Learn More' : <i className="fa-solid fa-arrow-up-right"></i>}
                   {isExplicit && <i className="fa-solid fa-arrow-up-right text-[7px]"></i>}

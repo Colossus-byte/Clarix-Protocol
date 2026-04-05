@@ -69,7 +69,7 @@ const ClarixAtlas: React.FC<ClarixAtlasProps> = ({ progress, onSelectTopic }) =>
               <circle cx="20" cy="20" r="16" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="4" />
               <circle
                 cx="20" cy="20" r="16" fill="none"
-                stroke="#ccff00" strokeWidth="4" strokeLinecap="round"
+                stroke="#6366F1" strokeWidth="4" strokeLinecap="round"
                 strokeDasharray={`${overallPct} 100`}
                 className="transition-all duration-1000"
               />
@@ -90,7 +90,7 @@ const ClarixAtlas: React.FC<ClarixAtlasProps> = ({ progress, onSelectTopic }) =>
       <div className="relative flex flex-col md:flex-row items-stretch justify-between gap-4 md:gap-6">
         {/* Connector line */}
         <svg className="absolute top-1/2 left-0 w-full h-1 hidden md:block opacity-10 pointer-events-none" style={{ transform: 'translateY(-50%)' }}>
-          <line x1="0" y1="0" x2="100%" y2="0" stroke="#ccff00" strokeWidth="2" strokeDasharray="8,8" />
+          <line x1="0" y1="0" x2="100%" y2="0" stroke="#6366F1" strokeWidth="2" strokeDasharray="8,8" />
         </svg>
 
         {TOPICS.map((topic, i) => {
@@ -111,7 +111,7 @@ const ClarixAtlas: React.FC<ClarixAtlasProps> = ({ progress, onSelectTopic }) =>
               initial={false}
               animate={isNew ? {
                 scale: [1, 1.04, 1],
-                boxShadow: ['0 0 0 0 rgba(204,255,0,0)', '0 0 0 8px rgba(204,255,0,0.2)', '0 0 0 0 rgba(204,255,0,0)'],
+                boxShadow: ['0 0 0 0 rgba(99,102,241,0.2)', '0 0 0 8px rgba(99,102,241,0.2)', '0 0 0 0 rgba(99,102,241,0.2)'],
               } : {}}
               transition={{ duration: 0.7 }}
               className="relative z-10 flex-1"
@@ -130,7 +130,7 @@ const ClarixAtlas: React.FC<ClarixAtlasProps> = ({ progress, onSelectTopic }) =>
                 {/* Icon + level label row */}
                 <div className="flex items-center justify-between">
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-base shadow-lg transition-all duration-500 ${
-                    isCompleted ? 'bg-cyber-lime text-black' :
+                    isCompleted ? 'bg-cyber-lime text-white' :
                     isCurrent   ? 'bg-white text-black animate-pulse' :
                     isNew       ? 'bg-cyber-lime/20 text-cyber-lime' :
                                   'bg-white/5 text-slate-500 group-hover:text-white'

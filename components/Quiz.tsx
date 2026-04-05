@@ -39,7 +39,7 @@ const Quiz: React.FC<QuizProps> = ({ questions, onComplete, onCancel }) => {
     const passed = score >= questions.length * 0.7;
     return (
       <div className="cyber-panel p-8 md:p-16 rounded-[2.5rem] md:rounded-[3.5rem] text-center max-w-2xl mx-auto animate-in zoom-in-95 duration-700">
-        <div className={`w-16 md:w-24 h-16 md:h-24 rounded-full mx-auto mb-6 md:mb-10 flex items-center justify-center text-2xl md:text-4xl shadow-2xl ${passed ? 'bg-cyber-lime text-black shadow-cyber-lime/20' : 'bg-rose-500 text-white shadow-rose-500/20'}`}>
+        <div className={`w-16 md:w-24 h-16 md:h-24 rounded-full mx-auto mb-6 md:mb-10 flex items-center justify-center text-2xl md:text-4xl shadow-2xl ${passed ? 'bg-cyber-lime text-white shadow-cyber-lime/20' : 'bg-rose-500 text-white shadow-rose-500/20'}`}>
           <i className={`fa-solid ${passed ? 'fa-star' : 'fa-rotate-right'}`}></i>
         </div>
         <h2 className="text-3xl md:text-5xl font-bold text-white mb-4 md:mb-6 tracking-tighter">
@@ -61,7 +61,7 @@ const Quiz: React.FC<QuizProps> = ({ questions, onComplete, onCancel }) => {
         </div>
 
         <div className="flex flex-col sm:flex-row gap-4">
-          <button onClick={() => onComplete(score, questions.length)} className="flex-1 py-4 md:py-5 bg-cyber-lime text-black font-bold uppercase tracking-widest text-[8px] md:text-xs rounded-xl md:rounded-2xl hover:scale-[1.02] transition-all">
+          <button onClick={() => onComplete(score, questions.length)} className="flex-1 py-4 md:py-5 bg-cyber-lime text-white font-bold uppercase tracking-widest text-[8px] md:text-xs rounded-xl md:rounded-2xl hover:scale-[1.02] transition-all">
             {passed ? 'Continue →' : 'See Results Anyway'}
           </button>
           {!passed && (

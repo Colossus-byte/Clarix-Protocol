@@ -156,7 +156,7 @@ const PeerNexus: React.FC<PeerNexusProps> = ({ progress, onSendMessage, onSendTo
                     placeholder="Broadcast signal..."
                     className="w-full bg-black/40 border border-white/10 rounded-xl md:rounded-2xl py-3 md:py-4 pl-4 md:pl-6 pr-12 md:pr-16 focus:outline-none focus:border-cyber-lime/30 transition-all text-xs md:text-sm terminal-text"
                   />
-                  <button type="submit" className="absolute right-1.5 md:right-2 top-1/2 -translate-y-1/2 w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-cyber-lime text-black flex items-center justify-center shadow-lg shadow-cyber-lime/10">
+                  <button type="submit" className="absolute right-1.5 md:right-2 top-1/2 -translate-y-1/2 w-8 h-8 md:w-10 md:h-10 rounded-lg md:rounded-xl bg-cyber-lime text-white flex items-center justify-center shadow-lg shadow-cyber-lime/10">
                     <i className="fa-solid fa-paper-plane text-[10px] md:text-xs"></i>
                   </button>
                 </div>
@@ -190,7 +190,7 @@ const PeerNexus: React.FC<PeerNexusProps> = ({ progress, onSendMessage, onSendTo
                 <button 
                   onClick={handleTransfer}
                   disabled={isTransferring || transferAmount <= 0 || transferAmount > progress.tokenBalance}
-                  className="w-full md:w-auto px-8 md:px-10 py-4 md:py-5 bg-white text-black font-black uppercase tracking-widest text-[8px] md:text-[10px] rounded-xl md:rounded-2xl hover:bg-cyber-lime hover:scale-105 active:scale-95 transition-all shadow-xl disabled:opacity-20"
+                  className="w-full md:w-auto px-8 md:px-10 py-4 md:py-5 bg-white text-black font-black uppercase tracking-widest text-[8px] md:text-[10px] rounded-xl md:rounded-2xl hover:bg-indigo-400 hover:scale-105 active:scale-95 transition-all shadow-xl disabled:opacity-20"
                 >
                   {isTransferring ? <><i className="fa-solid fa-spinner animate-spin mr-2"></i> Initializing...</> : 'Initialize Bridge'}
                 </button>

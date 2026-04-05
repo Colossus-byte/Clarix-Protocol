@@ -46,7 +46,7 @@ const UpgradeModal: React.FC<UpgradeModalProps> = ({ isOpen, onClose }) => {
           </p>
           <button
             onClick={onClose}
-            className="mt-8 w-full py-4 rounded-2xl bg-cyber-lime text-black font-black uppercase tracking-widest text-xs hover:bg-lime-300 transition-all"
+            className="mt-8 w-full py-4 rounded-2xl bg-cyber-lime text-white font-black uppercase tracking-widest text-xs hover:bg-lime-300 transition-all"
           >
             Got it — explore everything
           </button>

@@ -130,7 +130,7 @@ const CodeSnippet: React.FC<CodeSnippetProps> = ({ code, language }) => {
             className={`h-8 md:h-10 px-4 md:px-6 rounded-xl md:rounded-2xl font-black text-[8px] md:text-[10px] uppercase tracking-widest transition-all disabled:opacity-50 flex items-center gap-2 md:gap-3 ${
                 isRunning 
                 ? 'bg-hyper-gold/10 text-hyper-gold border border-hyper-gold/30' 
-                : 'bg-cyber-lime text-black shadow-lg shadow-cyber-lime/10 hover:scale-[1.05] active:scale-95'
+                : 'bg-cyber-lime text-white shadow-lg shadow-cyber-lime/10 hover:scale-[1.05] active:scale-95'
             }`}
           >
             {isRunning ? (

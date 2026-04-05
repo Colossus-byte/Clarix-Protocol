@@ -140,7 +140,7 @@ const LevelCompletionCelebration: React.FC<LevelCompletionCelebrationProps> = ({
 
             <button
               onClick={onDismiss}
-              className="w-full py-4 rounded-2xl bg-cyber-lime text-black font-black uppercase tracking-widest text-xs hover:scale-[1.02] active:scale-95 transition-all shadow-lg shadow-cyber-lime/20"
+              className="w-full py-4 rounded-2xl bg-cyber-lime text-white font-semibold text-sm hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-cyber-lime/20"
             >
               Keep Going  <i className="fa-solid fa-arrow-right ml-2"></i>
             </button>

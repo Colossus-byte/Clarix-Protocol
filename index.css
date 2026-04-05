@@ -1,190 +1,206 @@
 @import "tailwindcss";
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
 
 @theme {
-  --color-void: #020205;
-  --color-surface: #0a0a0f;
-  --color-cyber-lime: #ccff00;
-  --color-electric-violet: #8b5cf6;
-  --color-hyper-gold: #fbbf24;
-  --color-neon-rose: #ff0055;
-  
-  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  /* ─── Core backgrounds ──────────────────────────────── */
+  --color-void: #0A0A0F;
+  --color-surface: #111118;
+
+  /* ─── Accent palette ────────────────────────────────── */
+  --color-indigo-primary: #6366F1;
+  --color-indigo-light:   #818CF8;
+  --color-cyan-accent:    #06B6D4;
+  --color-emerald-accent: #10B981;
+  --color-amber-accent:   #F59E0B;
+  --color-rose-accent:    #F43F5E;
+
+  /* ─── Legacy tokens (remapped to refined palette) ───── */
+  /* cyber-lime → indigo (primary accent) */
+  --color-cyber-lime:      #6366F1;
+  /* electric-violet → indigo-light (complementary) */
+  --color-electric-violet: #818CF8;
+  /* hyper-gold → cyan (secondary accent) */
+  --color-hyper-gold:      #06B6D4;
+  /* neon-rose → rose (danger / highlight) */
+  --color-neon-rose:       #F43F5E;
+
+  --font-sans:    'Inter', ui-sans-serif, system-ui, sans-serif;
   --font-display: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+  --font-mono:    'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
 }
 
 :root {
-    --void: #020205;
-    --surface: #0a0a0f;
-    --cyber-lime: #ccff00;
-    --electric-violet: #8b5cf6;
-    --hyper-gold: #fbbf24;
-    --neon-rose: #ff0055;
-    --glass: rgba(255, 255, 255, 0.03);
-    --glass-border: rgba(255, 255, 255, 0.08);
+  --void:           #0A0A0F;
+  --surface:        #111118;
+  --indigo:         #6366F1;
+  --indigo-light:   #818CF8;
+  --cyan:           #06B6D4;
+  --emerald:        #10B981;
+  --rose:           #F43F5E;
+  --glass:          rgba(255, 255, 255, 0.03);
+  --glass-border:   rgba(255, 255, 255, 0.06);
 }
 
+/* ─── Base ───────────────────────────────────────────────── */
 body {
-    font-family: var(--font-sans);
-    background-color: var(--void);
-    color: #e2e8f0;
-    overflow: hidden;
-    -webkit-font-smoothing: antialiased;
+  font-family: var(--font-sans);
+  background-color: var(--void);
+  color: #CBD5E1;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-size: 15px;
+  line-height: 1.6;
 }
 
+/* ─── Surface panels ──────────────────────────────────────── */
 .cyber-panel {
-    background: var(--surface);
-    border: 1px solid var(--glass-border);
-    box-shadow: 0 0 30px rgba(0,0,0,0.5);
-    backdrop-filter: blur(20px);
+  background: var(--surface);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.4), 0 8px 24px rgba(0,0,0,0.3);
+  backdrop-filter: blur(20px);
 }
 
 .glass-panel {
-    background: rgba(10, 10, 15, 0.95);
-    backdrop-filter: blur(40px);
-    border: 1px solid var(--glass-border);
-    box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+  background: rgba(17, 17, 24, 0.92);
+  backdrop-filter: blur(40px);
+  border: 1px solid var(--glass-border);
+  box-shadow: 0 24px 64px rgba(0,0,0,0.7);
 }
 
-.neon-text-lime { text-shadow: 0 0 10px rgba(204, 255, 0, 0.5); color: var(--cyber-lime); }
-.neon-text-violet { text-shadow: 0 0 10px rgba(139, 92, 246, 0.5); color: var(--electric-violet); }
+/* ─── Typography ──────────────────────────────────────────── */
+.terminal-text {
+  font-family: 'JetBrains Mono', monospace;
+  color: var(--indigo-light);
+  font-size: 0.7rem;
+  letter-spacing: 0.05em;
+}
 
+/* ─── Accent text ─────────────────────────────────────────── */
+.neon-text-lime   { color: var(--indigo); }
+.neon-text-violet { color: var(--indigo-light); }
+
+/* ─── Gradient backgrounds ────────────────────────────────── */
 .bg-gradient-cyber {
-    background: linear-gradient(135deg, var(--electric-violet), var(--neon-rose));
+  background: linear-gradient(135deg, var(--indigo), #9333ea);
 }
 
+/* ─── Page transitions ────────────────────────────────────── */
+.page-transition {
+  animation: pageFadeIn 0.25s ease-out both;
+}
+@keyframes pageFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Skill nodes ─────────────────────────────────────────── */
 .skill-node {
-    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 .skill-node:hover {
-    transform: scale(1.1) translateY(-5px);
-    box-shadow: 0 0 20px rgba(204, 255, 0, 0.3);
+  transform: scale(1.08) translateY(-3px);
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.25);
 }
 
+/* ─── Scrollbar ───────────────────────────────────────────── */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 
-@keyframes pulse-slow {
-    0%, 100% { opacity: 0.3; }
-    50% { opacity: 0.6; }
+/* ─── Loading skeleton ────────────────────────────────────── */
+.skeleton {
+  background: linear-gradient(90deg,
+    rgba(255,255,255,0.04) 0%,
+    rgba(255,255,255,0.08) 50%,
+    rgba(255,255,255,0.04) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+  border-radius: 6px;
 }
-.animate-pulse-slow { animation: pulse-slow 4s infinite; }
-
-.terminal-text {
-    font-family: 'JetBrains Mono', monospace;
-    color: var(--cyber-lime);
+@keyframes shimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
-/* Reading Typography */
+/* ─── Reading typography ──────────────────────────────────── */
 .prose-note {
-    font-size: 1.2rem;
-    line-height: 1.8;
-    color: #94a3b8;
-    font-weight: 400;
-    margin-bottom: 2rem;
+  font-size: 1rem;
+  line-height: 1.75;
+  color: #94A3B8;
+  font-weight: 400;
+  margin-bottom: 1.5rem;
 }
 
-/* Enhanced Content Cards */
+/* ─── Content cards ───────────────────────────────────────── */
 .takeaway-card {
-    background: linear-gradient(135deg, rgba(204, 255, 0, 0.03) 0%, transparent 100%);
-    border-left: 4px solid var(--cyber-lime);
-    padding: 2.5rem;
-    border-radius: 8px 2.5rem 2.5rem 8px;
-    margin: 4rem 0;
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 20px 40px -20px rgba(0, 0, 0, 0.5);
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.04) 0%, transparent 100%);
+  border-left: 3px solid var(--indigo);
+  padding: 1.75rem 2rem;
+  border-radius: 4px 16px 16px 4px;
+  margin: 2.5rem 0;
+  position: relative;
+  overflow: hidden;
 }
-.takeaway-card::after {
-    content: "";
-    position: absolute;
-    top: 0;
-    right: 0;
-    width: 150px;
-    height: 150px;
-    background: radial-gradient(circle at center, rgba(204, 255, 0, 0.05) 0%, transparent 70%);
-    pointer-events: none;
+.takeaway-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at left center, rgba(99,102,241,0.06) 0%, transparent 60%);
+  pointer-events: none;
 }
 
 .pro-tip-card {
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.03) 0%, transparent 100%);
-    border-left: 4px solid var(--electric-violet);
-    padding: 2.5rem;
-    border-radius: 8px 2.5rem 2.5rem 8px;
-    margin: 4rem 0;
-    position: relative;
-    box-shadow: 0 20px 40px -20px rgba(0, 0, 0, 0.5);
+  background: linear-gradient(135deg, rgba(6, 182, 212, 0.04) 0%, transparent 100%);
+  border-left: 3px solid var(--cyan);
+  padding: 1.75rem 2rem;
+  border-radius: 4px 16px 16px 4px;
+  margin: 2.5rem 0;
+  position: relative;
 }
 
+/* ─── Reveal animation ────────────────────────────────────── */
 .reveal-item {
-    opacity: 0;
-    animation: revealUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+  animation: revealUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
-
-/* Markdown Styling for Chat */
-.markdown-content p {
-    margin-bottom: 0.75rem;
-}
-.markdown-content p:last-child {
-    margin-bottom: 0;
-}
-.markdown-content strong {
-    color: var(--cyber-lime);
-    font-weight: 700;
-}
-.markdown-content ul, .markdown-content ol {
-    margin-bottom: 0.75rem;
-    padding-left: 1.25rem;
-}
-.markdown-content li {
-    margin-bottom: 0.25rem;
-}
-.markdown-content ul {
-    list-style-type: disc;
-}
-.markdown-content ol {
-    list-style-type: decimal;
-}
-
 @keyframes revealUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-/* Animated background mesh */
+/* ─── Markdown chat content ───────────────────────────────── */
+.markdown-content p           { margin-bottom: 0.75rem; }
+.markdown-content p:last-child{ margin-bottom: 0; }
+.markdown-content strong      { color: #E2E8F0; font-weight: 600; }
+.markdown-content ul,
+.markdown-content ol          { margin-bottom: 0.75rem; padding-left: 1.25rem; }
+.markdown-content li          { margin-bottom: 0.25rem; }
+.markdown-content ul          { list-style-type: disc; }
+.markdown-content ol          { list-style-type: decimal; }
+
+/* ─── Animated background ─────────────────────────────────── */
 .mesh-bg {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-image: 
-        radial-gradient(at 0% 0%, rgba(139, 92, 246, 0.05) 0px, transparent 50%),
-        radial-gradient(at 100% 0%, rgba(204, 255, 0, 0.05) 0px, transparent 50%);
-    z-index: -1;
-    pointer-events: none;
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background-image:
+    radial-gradient(at 0% 0%,   rgba(99, 102, 241, 0.06) 0px, transparent 55%),
+    radial-gradient(at 100% 0%, rgba(6, 182, 212, 0.04)  0px, transparent 55%);
+  z-index: -1;
+  pointer-events: none;
 }
 
-.scanline {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(to bottom, transparent, rgba(204, 255, 0, 0.1), transparent);
-    pointer-events: none;
-    animation: scan 3s linear infinite;
-}
-
-@keyframes scan {
-    from { transform: translateY(-100%); }
-    to { transform: translateY(100%); }
-}
-
-/* Celebration confetti */
+/* ─── Celebration confetti ────────────────────────────────── */
 @keyframes confettiFall {
-    0%   { opacity: 1; transform: translateY(0) rotate(0deg); }
-    80%  { opacity: 0.8; }
-    100% { opacity: 0; transform: translateY(100vh) rotate(720deg); }
+  0%   { opacity: 1; transform: translateY(0) rotate(0deg); }
+  80%  { opacity: 0.8; }
+  100% { opacity: 0; transform: translateY(100vh) rotate(720deg); }
 }
+
+/* ─── Pulse ───────────────────────────────────────────────── */
+@keyframes pulse-slow {
+  0%, 100% { opacity: 0.3; }
+  50%       { opacity: 0.7; }
+}
+.animate-pulse-slow { animation: pulse-slow 4s ease-in-out infinite; }

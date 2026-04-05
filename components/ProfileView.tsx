@@ -128,7 +128,7 @@ const ProfileView: React.FC<ProfileViewProps> = ({ progress, onUpdate }) => {
               </div>
               <button
                 onClick={() => isEditing ? handleSave() : setIsEditing(true)}
-                className={`w-full sm:w-auto px-6 md:px-8 py-3 rounded-xl md:rounded-2xl font-black text-[8px] md:text-[10px] uppercase tracking-widest transition-all ${isEditing ? 'bg-cyber-lime text-black' : 'bg-white/5 text-slate-400 border border-white/10 hover:text-white'}`}
+                className={`w-full sm:w-auto px-6 md:px-8 py-3 rounded-xl md:rounded-2xl font-black text-[8px] md:text-[10px] uppercase tracking-widest transition-all ${isEditing ? 'bg-cyber-lime text-white' : 'bg-white/5 text-slate-400 border border-white/10 hover:text-white'}`}
               >
                 {isEditing ? 'SYNC UPDATES' : 'EDIT CORE'}
               </button>
