@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { TOPICS, UI_TRANSLATIONS, LANGUAGES } from '../constants';
 import { Difficulty, UserProgress, Language } from '../types';
 import NeuralFeed from './NeuralFeed';
+import AppLogo from './AppLogo';
 
 interface SidebarProps {
   progress: UserProgress;
@@ -48,15 +49,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
       {/* Logo + Language + Close */}
       <div className="px-4 pt-5 pb-3 shrink-0 flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-indigo-500 flex items-center justify-center shadow-md shadow-indigo-500/20">
-            <i className="fa-solid fa-cube text-white text-xs"></i>
-          </div>
-          <div>
-            <p className="text-sm font-bold text-white tracking-tight leading-none">Clarix</p>
-            <p className="text-[10px] text-slate-600 mt-0.5">Protocol</p>
-          </div>
-        </div>
+        <AppLogo size="sm" />
         <div className="flex items-center gap-1.5">
           {/* Language */}
           <div className="relative">

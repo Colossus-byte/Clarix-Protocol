@@ -54,6 +54,11 @@ import AdminPage from './components/AdminPage';
 import CredentialCelebration from './components/CredentialCelebration';
 import VerifyPage from './components/VerifyPage';
 import OnboardingTour, { TOUR_STORAGE_KEY } from './components/OnboardingTour';
+import {
+  captureRefParam, getPendingRef, clearPendingRef,
+  ensureReferralCode, saveReferredBy,
+  triggerReferralRewards, claimReferrerRewards,
+} from './services/referralService';
 
 const AppContent: React.FC = () => {
   const { t: tTerm, Term } = useTerminology();
@@ -67,6 +72,9 @@ const [walletState, setWalletState] = useState<WalletState | null>(null);
     window.addEventListener('popstate', handleLocationChange);
     return () => window.removeEventListener('popstate', handleLocationChange);
   }, []);
+
+  // Capture ?ref= from URL on first load
+  useEffect(() => { captureRefParam(); }, []);
 
   const [localProgress, setLocalProgress] = useState<UserProgress>(() => {
     try {
@@ -187,6 +195,49 @@ const handleWalletDisconnected = () => {
     const storageKey = progress.did ? `clarix_v1_state_${progress.did}` : 'clarix_v1_state';
     localStorage.setItem(storageKey, JSON.stringify(progress));
   }, [progress]);
+
+  // Referral: when a Firebase user is authenticated, ensure they have a referral
+  // code and check for unclaimed referrer rewards.
+  useEffect(() => {
+    if (!user) return;
+    const identifier = progress.walletAddress || user.uid;
+
+    // Ensure this user has a referral code stored in Firestore
+    ensureReferralCode(user.uid, identifier).then(code => {
+      if (code && code !== progress.referralCode) {
+        setProgress(p => ({ ...p, referralCode: code }));
+      }
+    }).catch(() => {});
+
+    // Save referredBy if we have a pending ref from the URL
+    const pendingRef = getPendingRef();
+    if (pendingRef && !progress.referredBy) {
+      saveReferredBy(user.uid, pendingRef).then(() => {
+        setProgress(p => ({ ...p, referredBy: pendingRef }));
+        clearPendingRef();
+      }).catch(() => {});
+    }
+
+    // Claim any unclaimed referrer rewards (15 tokens per new conversion)
+    if (progress.referralCode) {
+      claimReferrerRewards(progress.referralCode).then(newCount => {
+        if (newCount > 0) {
+          const earned = newCount * 15;
+          setProgress(p => ({
+            ...p,
+            tokenBalance: p.tokenBalance + earned,
+            referralCount: (p.referralCount ?? 0) + newCount,
+            referralTokensEarned: (p.referralTokensEarned ?? 0) + earned,
+          }));
+          addNotification(
+            'Referral Reward',
+            `+${earned} $PATH — ${newCount} friend${newCount > 1 ? 's' : ''} completed their first lesson`,
+            'success'
+          );
+        }
+      }).catch(() => {});
+    }
+  }, [user?.uid]); // eslint-disable-line react-hooks/exhaustive-deps
 useEffect(() => {
   // Auto-detect if user already has MetaMask connected
   checkExistingConnection().then(address => {
@@ -379,7 +430,7 @@ useEffect(() => {
 
     // Award XP + tokens + update streak for this lesson
     const XP_PER_LESSON = 20;
-    const TOKENS_PER_LESSON = 2;
+    const TOKENS_PER_LESSON = 3;
     setProgress(prev => {
       const streakUpdates = computeStreakUpdates(prev);
       const newXP = (prev.xp || 0) + XP_PER_LESSON;
@@ -405,6 +456,22 @@ useEffect(() => {
     });
 
     writeActivityEvent(currentSubtopic.title, currentTopic.title);
+
+    // Referral reward: fire when user completes their very first lesson
+    const isFirstEverLesson = progress.completedSubtopics.length === 0;
+    if (isFirstEverLesson && progress.referredBy) {
+      // Award new user their 5-token welcome bonus
+      if (!progress.referralRewardClaimed) {
+        setProgress(p => ({ ...p, tokenBalance: p.tokenBalance + 5, referralRewardClaimed: true }));
+        addNotification('Welcome Bonus', '+5 $PATH from your referral', 'success');
+      }
+      // Notify referrer (async, non-blocking)
+      triggerReferralRewards(
+        user?.uid ?? 'anon',
+        progress.walletAddress,
+        progress.referredBy,
+      ).catch(() => {});
+    }
 
     if (isLastSubtopic) {
       handleStartQuiz();

@@ -116,6 +116,24 @@ service cloud.firestore {
       allow write: if isOwner(userId);
     }
 
+    // ── Referral Events ───────────────────────────────────────────────────────
+    // Created by referred user on first lesson. Claimed (updated) by referrer.
+    match /referral_events/{eventId} {
+      allow create: if isAuthenticated() &&
+                       request.resource.data.keys().hasAll(['referrerCode', 'referredUid', 'referrerRewarded', 'referredRewarded']) &&
+                       request.resource.data.referrerCode is string &&
+                       request.resource.data.referrerCode.size() <= 20 &&
+                       request.resource.data.referredUid is string &&
+                       request.resource.data.referredUid.size() <= 128 &&
+                       request.resource.data.referrerRewarded == false &&
+                       request.resource.data.referredRewarded == false;
+      allow read: if isAuthenticated();
+      allow update: if isAuthenticated() &&
+                       request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['referrerRewarded', 'referredRewarded']);
+      allow delete: if false;
+    }
+
     // ── Wallet Registrations ──────────────────────────────────────────────────
     // Written once on first wallet connection. Public read for admin dashboard.
     // Doc ID = lowercase wallet address. Updates blocked (first-registration wins).

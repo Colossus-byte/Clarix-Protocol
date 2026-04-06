@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { UserProgress, Guild } from '../types';
 import { DEFAULT_AVATARS, GUILD_DATA } from '../constants';
 import ClarixPass from './ClarixPass';
+import ReferralCard from './ReferralCard';
 import { auth } from '../firebase';
 import { signOut } from 'firebase/auth';
 
@@ -258,6 +259,9 @@ const ProfileView: React.FC<ProfileViewProps> = ({ progress, onUpdate, onReplayT
                 </button>
               </div>
             </div>
+
+            {/* Referral */}
+            <ReferralCard referralCode={progress.referralCode} walletAddress={progress.walletAddress} />
 
             {/* Replay Tour */}
             {onReplayTour && (

@@ -24,6 +24,9 @@ interface Stats {
   totalWallets: number;
   newThisWeek: number;
   totalLessons: number;
+  totalCredentials: number;
+  totalPathDistributed: number;
+  activeUsers: number;
   topUsers: LeaderEntry[];
 }
 
@@ -93,12 +96,23 @@ const AdminPage: React.FC = () => {
         }));
 
         // 4. Total lessons = sum of completedLessons across leaderboard
-        //    (fetch all leaderboard docs for the sum — leaderboard is small)
         const allLbQ = query(collection(db, 'leaderboard'), orderBy('completedLessons', 'desc'));
         const allLbSnap = await getDocs(allLbQ);
         const totalLessons = allLbSnap.docs.reduce((sum, d) => sum + (d.data().completedLessons ?? 0), 0);
 
-        // 5. Recent wallet registrations for the table
+        // 4b. Total $PATH distributed = sum of xp-derived tokens across leaderboard
+        //     We don't store tokenBalance in leaderboard, so approximate from xp
+        //     (each lesson = 20 XP = 3 tokens, module = 50 XP = 10 tokens)
+        const totalPathDistributed = allLbSnap.docs.reduce((sum, d) => {
+          const lessons = d.data().completedLessons ?? 0;
+          return sum + lessons * 3; // 3 tokens per lesson as baseline approximation
+        }, 0);
+
+        // 5. Total credentials issued (public_credentials collection)
+        const credSnap = await getCountFromServer(collection(db, 'public_credentials'));
+        const totalCredentials = credSnap.data().count;
+
+        // 6. Recent wallet registrations for the table
         const recentQ = query(collection(db, 'wallet_registrations'), orderBy('connectedAt', 'desc'), limit(50));
         const recentSnap = await getDocs(recentQ);
         const recentWallets: WalletReg[] = recentSnap.docs.map(d => ({
@@ -107,7 +121,7 @@ const AdminPage: React.FC = () => {
           username: d.data().username ?? 'Web3User',
         }));
 
-        setStats({ totalWallets, newThisWeek, totalLessons, topUsers });
+        setStats({ totalWallets, newThisWeek, totalLessons, totalCredentials, totalPathDistributed, activeUsers: allLbSnap.docs.length, topUsers });
         setWallets(recentWallets);
       } catch (e: any) {
         setError(e.message ?? 'Failed to load data');
@@ -182,10 +196,12 @@ const AdminPage: React.FC = () => {
             {/* Stat cards */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
               {[
-                { label: 'Total Wallets Connected', value: stats.totalWallets.toLocaleString(), icon: 'fa-wallet', color: 'text-cyber-lime' },
+                { label: 'Total Wallets Connected', value: stats.totalWallets.toLocaleString(), icon: 'fa-wallet', color: 'text-cyan-400' },
                 { label: 'New This Week', value: stats.newThisWeek.toLocaleString(), icon: 'fa-user-plus', color: 'text-blue-400' },
-                { label: 'Total Lessons Completed', value: stats.totalLessons.toLocaleString(), icon: 'fa-graduation-cap', color: 'text-electric-violet' },
-                { label: 'Active Users (leaderboard)', value: stats.topUsers.length > 0 ? `${stats.topUsers.length}+` : '0', icon: 'fa-fire', color: 'text-hyper-gold' },
+                { label: 'Total Lessons Completed', value: stats.totalLessons.toLocaleString(), icon: 'fa-graduation-cap', color: 'text-indigo-400' },
+                { label: 'Credentials Issued', value: stats.totalCredentials.toLocaleString(), icon: 'fa-certificate', color: 'text-amber-400' },
+                { label: '$PATH Distributed', value: stats.totalPathDistributed.toLocaleString(), icon: 'fa-coins', color: 'text-emerald-400' },
+                { label: 'Active Users', value: stats.activeUsers.toLocaleString(), icon: 'fa-fire', color: 'text-orange-400' },
               ].map(card => (
                 <div key={card.label} className="p-5 rounded-2xl bg-surface border border-white/5">
                   <i className={`fa-solid ${card.icon} ${card.color} text-lg mb-3`}></i>

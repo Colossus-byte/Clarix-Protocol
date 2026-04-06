@@ -1,5 +1,6 @@
 
 import React from 'react';
+import AppLogo from './AppLogo';
 
 interface ManifestoProps {
   onClose: () => void;
@@ -18,8 +19,8 @@ const Manifesto: React.FC<ManifestoProps> = ({ onClose }) => {
     <div className="fixed inset-0 z-[600] bg-void overflow-y-auto no-scrollbar py-12 md:py-20 px-6">
       <div className="max-w-4xl mx-auto space-y-20 md:space-y-32">
         <header className="text-center space-y-6 md:space-y-8 animate-in fade-in slide-in-from-bottom-12 duration-1000">
-          <div className="w-16 h-16 md:w-24 md:h-24 bg-cyber-lime text-white rounded-2xl md:rounded-3xl mx-auto flex items-center justify-center text-3xl md:text-5xl shadow-[0_0_50px_rgba(99,102,241,0.2)]">
-            <i className="fa-solid fa-v"></i>
+          <div className="flex justify-center">
+            <AppLogo size="lg" />
           </div>
           <h1 className="text-4xl md:text-7xl font-black text-white tracking-tighter italic uppercase">The Clarix Manifesto</h1>
           <p className="text-base md:text-xl text-slate-400 font-medium max-w-2xl mx-auto leading-relaxed">

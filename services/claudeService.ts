@@ -8,12 +8,31 @@ const CLAUDE_API_URL = 'https://api.anthropic.com/v1/messages';
 const MODEL = 'claude-sonnet-4-20250514';
 
 // ─── Core fetch helper ────────────────────────────────────────────────────────
+// ⚠️  SECURITY NOTE: This service makes direct browser-to-API calls to api.anthropic.com.
+// VITE_CLAUDE_API_KEY is a client-side env var (VITE_ prefix) and IS exposed in the
+// compiled JS bundle — it is visible to anyone who inspects the page source.
+// This is the current architecture (uses anthropic-dangerous-direct-browser-access header).
+// Do not refactor to server-side without explicit instruction.
+
 async function callClaude(systemPrompt: string, userMessage: string, maxTokens = 1000): Promise<string> {
   const apiKey = import.meta.env.VITE_CLAUDE_API_KEY;
 
   if (!apiKey) {
+    // ERR_NETWORK_IO_SUSPENDED is often caused by a missing key (empty fetch) or a
+    // browser extension (uBlock, Privacy Badger) blocking api.anthropic.com.
+    // Check: (1) .env.local exists and contains VITE_CLAUDE_API_KEY=sk-ant-...
+    //        (2) Dev server was restarted after adding the env var
+    //        (3) No browser extension is blocking the request
+    console.error(
+      '[Claude] VITE_CLAUDE_API_KEY is not set.\n' +
+      '  1. Create .env.local in the project root\n' +
+      '  2. Add: VITE_CLAUDE_API_KEY=sk-ant-api03-...\n' +
+      '  3. Restart the dev server (npm run dev)'
+    );
     throw new Error('VITE_CLAUDE_API_KEY is not set. Add it to your .env.local file.');
   }
+
+  console.debug('[Claude] API call →', CLAUDE_API_URL, '| key prefix:', apiKey.slice(0, 12) + '...');
 
   const response = await fetch(CLAUDE_API_URL, {
     method: 'POST',
@@ -33,7 +52,9 @@ async function callClaude(systemPrompt: string, userMessage: string, maxTokens =
 
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({}));
-    throw new Error(`Claude API error ${response.status}: ${errorData?.error?.message || response.statusText}`);
+    const msg = `Claude API error ${response.status}: ${errorData?.error?.message || response.statusText}`;
+    console.error('[Claude] Request failed:', msg, { status: response.status });
+    throw new Error(msg);
   }
 
   const data = await response.json();

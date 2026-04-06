@@ -150,6 +150,12 @@ export interface UserProgress {
   // Credentials
   earnedCredentialIds: string[];
   learningBannerDismissed?: boolean;
+  // Referral
+  referralCode?: string;
+  referredBy?: string;        // CLX-XXXXXX code of who referred this user
+  referralRewardClaimed?: boolean; // whether the new-user 5-token bonus has been applied
+  referralCount?: number;     // how many users this person has referred
+  referralTokensEarned?: number;
 }
 
 export interface Recommendation {
