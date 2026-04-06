@@ -64,6 +64,28 @@ interface OverviewStats {
 const ADMIN_KEY = import.meta.env.VITE_ADMIN_KEY as string | undefined;
 const SESSION_KEY = 'clarix_admin_unlocked';
 
+// Wallet addresses that bypass the PIN gate entirely (case-insensitive).
+const ADMIN_WALLETS = [
+  '0xa1778ca7b0ac30b61b7c6b00c618ed0bb8c81f9e',
+];
+
+/** Returns the wallet address currently stored in Clarix localStorage state. */
+function getConnectedWallet(): string | null {
+  try {
+    for (const key of Object.keys(localStorage)) {
+      if (!key.startsWith('clarix_v1_state')) continue;
+      const data = JSON.parse(localStorage.getItem(key) ?? '{}');
+      if (data.walletAddress) return (data.walletAddress as string).toLowerCase();
+    }
+  } catch { /* ignore parse errors */ }
+  return null;
+}
+
+function isAdminWallet(): boolean {
+  const w = getConnectedWallet();
+  return w !== null && ADMIN_WALLETS.includes(w);
+}
+
 const MODULE_NAMES: Record<string, string> = {
   b1: 'Crypto Foundations',
   b2: 'Blockchain Mechanics',
@@ -117,7 +139,11 @@ const EVENT_COLOR: Record<string, string> = {
 // ── AdminPage ─────────────────────────────────────────────────────────────────
 
 const AdminPage: React.FC = () => {
-  const [unlocked, setUnlocked] = useState(!ADMIN_KEY || sessionStorage.getItem(SESSION_KEY) === '1');
+  const [unlocked, setUnlocked] = useState(
+    !ADMIN_KEY ||
+    sessionStorage.getItem(SESSION_KEY) === '1' ||
+    isAdminWallet()
+  );
   const [pin, setPin] = useState('');
   const [pinError, setPinError] = useState(false);
 
@@ -133,7 +159,7 @@ const AdminPage: React.FC = () => {
   const [lastRefresh, setLastRefresh] = useState<number>(0);
 
   const handleUnlock = () => {
-    if (pin === ADMIN_KEY) {
+    if (pin === ADMIN_KEY || ADMIN_WALLETS.includes(pin.toLowerCase())) {
       sessionStorage.setItem(SESSION_KEY, '1');
       setUnlocked(true);
       setPinError(false);
