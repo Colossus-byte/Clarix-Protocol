@@ -1,22 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { initializeApp, getApps } from 'firebase/app';
-import { getFirestore, collection, addDoc, getDocs, query, where, getCountFromServer, serverTimestamp } from 'firebase/firestore';
-import firebaseConfig from '../firebase-applet-config.json';
-
-const app = getApps().length ? getApps()[0] : initializeApp(firebaseConfig);
-const db = getFirestore(app);
-// ── DEBUG ───────────────────────────────────────────────────────────────────
-// WARNING: This getFirestore(app) call uses NO databaseId argument, so it
-// writes to the DEFAULT Firestore database.  The rest of the app uses
-// getFirestore(app, firebaseConfig.firestoreDatabaseId) which writes to the
-// NAMED database "ai-studio-558d5afe-c43a-45c5-8e42-ae1f50665518".
-// Waitlist entries will appear in the DEFAULT database, not the named one.
-console.warn(
-  '[WaitlistForm] Firestore instance: DEFAULT database (no databaseId passed).',
-  'The rest of the app writes to the NAMED database.',
-  'Waitlist documents will appear under the (default) database in the Firebase Console, not the named one.'
-);
-// ────────────────────────────────────────────────────────────────────────────
+import { collection, addDoc, getDocs, query, where, getCountFromServer, serverTimestamp } from 'firebase/firestore';
+import { db } from '../firebase'; // shared (default) database instance
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 

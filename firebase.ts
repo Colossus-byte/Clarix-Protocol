@@ -5,20 +5,15 @@ import firebaseConfig from './firebase-applet-config.json';
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-export const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+export const db = getFirestore(app); // uses (default) database — matches firebase.json
 
 // ── DEBUG: confirm which Firebase project and database are in use ──────────
 console.log('%c[Firebase] Config loaded', 'color:#00D4FF;font-weight:bold', {
   projectId: firebaseConfig.projectId,
   authDomain: firebaseConfig.authDomain,
-  databaseId: firebaseConfig.firestoreDatabaseId,
+  database: '(default)',
   appId: firebaseConfig.appId,
 });
-console.warn(
-  '[Firebase] NOTE: Firestore is using a NAMED database, not (default).',
-  `Database ID: "${firebaseConfig.firestoreDatabaseId}"`,
-  '— In the Firebase Console, make sure you select this database, not (default).'
-);
 // ─────────────────────────────────────────────────────────────────────────────
 
 export enum OperationType {
