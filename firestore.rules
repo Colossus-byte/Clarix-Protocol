@@ -115,9 +115,12 @@ service cloud.firestore {
 
     // ── Analytics Events ──────────────────────────────────────────────────────
     // Open write for all users including unauthenticated (WalletConnect/anonymous).
+    // Read is open — data is anonymised (wallet addresses only, no PII).
+    // Admin dashboard reads all events; writes are append-only from clients.
     match /events/{eventId} {
       allow create: if true;
-      allow read, update, delete: if false;
+      allow read: if true;
+      allow update, delete: if false;
     }
 
     // ── Referrals ─────────────────────────────────────────────────────────────
