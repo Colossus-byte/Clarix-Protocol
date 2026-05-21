@@ -1,6 +1,6 @@
 
 import React, { useRef, useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import { TOPICS } from '../constants';
 import { UserProgress, Difficulty } from '../types';
 

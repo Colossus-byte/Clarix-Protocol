@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 
 // Firebase config read exclusively from environment variables.
@@ -24,6 +24,7 @@ if (!firebaseConfig.projectId) {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
+export const googleProvider = new GoogleAuthProvider();
 
 console.log('%c[Firebase] Initialised', 'color:#00D4FF;font-weight:bold', {
   projectId: firebaseConfig.projectId ?? '(missing)',

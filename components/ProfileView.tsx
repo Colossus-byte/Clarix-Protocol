@@ -11,9 +11,10 @@ interface ProfileViewProps {
   progress: UserProgress;
   onUpdate: (updates: Partial<UserProgress>) => void;
   onReplayTour?: () => void;
+  onConnectWallet?: () => void;
 }
 
-const ProfileView: React.FC<ProfileViewProps> = ({ progress, onUpdate, onReplayTour }) => {
+const ProfileView: React.FC<ProfileViewProps> = ({ progress, onUpdate, onReplayTour, onConnectWallet }) => {
   const [username, setUsername] = useState(progress.username);
   const [bio, setBio] = useState(progress.bio);
   const [selectedAvatar, setSelectedAvatar] = useState(progress.avatarUrl);
@@ -282,20 +283,41 @@ const ProfileView: React.FC<ProfileViewProps> = ({ progress, onUpdate, onReplayT
               </div>
             )}
 
-            {progress.walletAddress && (
-              <div className="p-4 md:p-6 rounded-xl md:rounded-2xl border border-rose-500/20 bg-rose-500/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 md:gap-6 mt-8">
+            {/* Wallet connection — optional Web3 feature */}
+            {!progress.walletAddress ? (
+              <div className="p-4 md:p-6 rounded-xl md:rounded-2xl border border-indigo-500/20 bg-indigo-500/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-4">
+                <div className="flex items-center gap-4">
+                  <i className="fa-solid fa-wallet text-indigo-400 text-lg"></i>
+                  <div>
+                    <h4 className="text-[10px] md:text-xs font-black text-white uppercase tracking-widest mb-1">Connect Wallet</h4>
+                    <p className="text-[10px] md:text-xs text-slate-500 max-w-xs">
+                      Optional — enables portfolio tracking, on-chain credentials, and Web3 features.
+                    </p>
+                  </div>
+                </div>
+                {onConnectWallet && (
+                  <button
+                    onClick={onConnectWallet}
+                    className="w-full sm:w-auto px-4 py-2 bg-indigo-500/20 hover:bg-indigo-500/30 text-indigo-400 font-bold text-[10px] uppercase tracking-widest rounded-lg border border-indigo-500/30 transition-colors whitespace-nowrap"
+                  >
+                    Connect Wallet
+                  </button>
+                )}
+              </div>
+            ) : (
+              <div className="p-4 md:p-6 rounded-xl md:rounded-2xl border border-rose-500/20 bg-rose-500/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 md:gap-6 mt-4">
                 <div className="flex items-center gap-4">
                   <i className="fa-solid fa-wallet text-rose-500 text-lg md:text-xl"></i>
                   <div>
                     <h4 className="text-[10px] md:text-xs font-black text-white uppercase tracking-widest mb-1">Connected Wallet</h4>
-                    <p className="text-[8px] md:text-[10px] text-rose-200 font-mono tracking-widest">
+                    <p className="text-[8px] md:text-[10px] text-rose-200 font-mono tracking-widest break-all">
                       {progress.walletAddress}
                     </p>
                   </div>
                 </div>
-                <button 
+                <button
                   onClick={() => onUpdate({ walletAddress: undefined })}
-                  className="px-4 py-2 bg-rose-500/20 hover:bg-rose-500/40 text-rose-500 font-bold text-[10px] uppercase tracking-widest rounded-lg transition-colors whitespace-nowrap"
+                  className="w-full sm:w-auto px-4 py-2 bg-rose-500/20 hover:bg-rose-500/40 text-rose-500 font-bold text-[10px] uppercase tracking-widest rounded-lg transition-colors whitespace-nowrap"
                 >
                   Disconnect
                 </button>

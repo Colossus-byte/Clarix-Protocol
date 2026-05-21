@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import Sidebar from './components/Sidebar';
 import AIAssistant from './components/AIAssistant';
 import Quiz from './components/Quiz';
@@ -44,7 +44,8 @@ import { FirebaseProvider, useFirebase } from './contexts/FirebaseContext';
 import WalletConnectModal from './components/WalletConnectModal';
 import { WalletState, watchWalletChanges, checkExistingConnection } from './services/walletService';
 import { addDoc, collection, doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from './firebase';
+import { auth, db } from './firebase';
+import { getRedirectResult } from 'firebase/auth';
 import LevelCompletionCelebration from './components/LevelCompletionCelebration';
 import LessonTutor from './components/LessonTutor';
 import ActivityFeed from './components/ActivityFeed';
@@ -106,12 +107,58 @@ const LandingWithTour: React.FC = () => {
   );
 };
 
+// Default progress factory — used when creating a brand-new Firestore profile
+function makeDefaultProgress(displayName?: string | null, photoURL?: string | null): UserProgress {
+  return {
+    completedSubtopics: [],
+    completedTopics: [],
+    tokenBalance: 0,
+    currentTopicId: 'b1',
+    currentSubtopicIndex: 0,
+    discoveredFactIds: [],
+    quizHistory: [],
+    onboarded: false,
+    achievements: [],
+    metrics: { cryptography: 5, defi: 0, security: 0, economics: 10 },
+    language: Language.EN,
+    guild: Guild.NONE,
+    votedProposalIds: [],
+    p2pTransactions: [],
+    p2pMessages: [],
+    username: displayName || 'Learner',
+    bio: '',
+    avatarUrl: photoURL || DEFAULT_AVATARS[0],
+    notifications: [],
+    vantaRank: 1,
+    isPro: false,
+    isPrivate: false,
+    aiSentinelAccess: true,
+    xp: 0,
+    streak: 0,
+    lastActiveDate: '',
+    longestStreak: 0,
+    earnedCredentialIds: [],
+  };
+}
+
 const AppContent: React.FC = () => {
   const { t: tTerm, Term } = useTerminology();
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
   const { user, isAuthReady, progress: firebaseProgress, updateProgress } = useFirebase();
-const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
-const [walletState, setWalletState] = useState<WalletState | null>(null);
+  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
+  const [walletState, setWalletState] = useState<WalletState | null>(null);
+
+  // Refs for mobile scroll
+  const lessonAreaRef = useRef<HTMLDivElement>(null);
+  const atlasRef = useRef<HTMLDivElement>(null);
+
+  // Lesson integrity state
+  const [lessonTimerSec, setLessonTimerSec] = useState(60);
+  const [lessonTimerDone, setLessonTimerDone] = useState(false);
+  const [lessonMiniQuiz, setLessonMiniQuiz] = useState<QuizQuestion | null>(null);
+  const [lessonMiniQuizSelected, setLessonMiniQuizSelected] = useState<number | null>(null);
+  const [lessonMiniQuizAnswered, setLessonMiniQuizAnswered] = useState(false);
+  const [isGeneratingMiniQuiz, setIsGeneratingMiniQuiz] = useState(false);
 
   useEffect(() => {
     const handleLocationChange = () => setCurrentPath(window.location.pathname);
@@ -121,6 +168,38 @@ const [walletState, setWalletState] = useState<WalletState | null>(null);
 
   // Capture ?ref= from URL on first load
   useEffect(() => { captureRefParam(); }, []);
+
+  // Initialize a new user's Firestore profile on first sign-in
+  const initUserProfile = useCallback(async (uid: string, displayName?: string | null, photoURL?: string | null) => {
+    const docRef = doc(db, 'users', uid);
+    const snap = await getDoc(docRef);
+    if (!snap.exists()) {
+      await setDoc(docRef, makeDefaultProgress(displayName, photoURL));
+    }
+  }, []);
+
+  // Handle Google Sign-In redirect result (fires on first mount after redirect)
+  useEffect(() => {
+    getRedirectResult(auth).then(async (result) => {
+      if (!result?.user) return;
+      await initUserProfile(result.user.uid, result.user.displayName, result.user.photoURL);
+      window.history.pushState({}, '', '/dashboard');
+      window.dispatchEvent(new PopStateEvent('popstate'));
+    }).catch((err) => {
+      console.error('[Auth] getRedirectResult error:', err);
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // After email/password sign-in, navigate away from /signup and init profile
+  useEffect(() => {
+    if (!user || !isAuthReady) return;
+    if (currentPath === '/signup') {
+      initUserProfile(user.uid, user.displayName, user.photoURL).then(() => {
+        window.history.pushState({}, '', '/dashboard');
+        window.dispatchEvent(new PopStateEvent('popstate'));
+      });
+    }
+  }, [user?.uid, isAuthReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [localProgress, setLocalProgress] = useState<UserProgress>(() => {
     try {
@@ -392,6 +471,54 @@ useEffect(() => {
     }
   }, [progress.currentTopicId, progress.currentSubtopicIndex, progress.onboarded]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // ── Lesson integrity: reset timer/quiz when lesson changes ────────────────
+  useEffect(() => {
+    if (!progress.onboarded) return;
+    // Skip timer for already-completed lessons
+    if (progress.completedSubtopics.includes(currentSubtopic?.id ?? '')) {
+      setLessonTimerDone(true);
+      setLessonMiniQuizAnswered(true);
+      return;
+    }
+    setLessonTimerSec(60);
+    setLessonTimerDone(false);
+    setLessonMiniQuiz(null);
+    setLessonMiniQuizSelected(null);
+    setLessonMiniQuizAnswered(false);
+    setIsGeneratingMiniQuiz(false);
+  }, [progress.currentTopicId, progress.currentSubtopicIndex, progress.onboarded]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Countdown timer ───────────────────────────────────────────────────────
+  useEffect(() => {
+    if (lessonTimerDone || !progress.onboarded || isQuizMode) return;
+    if (lessonTimerSec <= 0) { setLessonTimerDone(true); return; }
+    const t = setTimeout(() => setLessonTimerSec(s => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [lessonTimerSec, lessonTimerDone, progress.onboarded, isQuizMode]);
+
+  // ── Generate mini-quiz when timer expires ─────────────────────────────────
+  useEffect(() => {
+    if (!lessonTimerDone || lessonMiniQuiz || lessonMiniQuizAnswered || isGeneratingMiniQuiz) return;
+    if (!currentSubtopic) { setLessonMiniQuizAnswered(true); return; }
+    setIsGeneratingMiniQuiz(true);
+    generateQuiz(currentSubtopic.content, progress.language)
+      .then(qs => {
+        setIsGeneratingMiniQuiz(false);
+        if (qs.length > 0) setLessonMiniQuiz(qs[0]);
+        else setLessonMiniQuizAnswered(true);
+      })
+      .catch(() => {
+        setIsGeneratingMiniQuiz(false);
+        setLessonMiniQuizAnswered(true);
+      });
+  }, [lessonTimerDone]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleMiniQuizSelect = (idx: number) => {
+    if (lessonMiniQuizAnswered) return;
+    setLessonMiniQuizSelected(idx);
+    setLessonMiniQuizAnswered(true);
+  };
+
   // ── Gamification helpers ──────────────────────────────────────────────────
   const computeStreakUpdates = (base: UserProgress) => {
     const today = new Date().toISOString().split('T')[0];
@@ -549,13 +676,11 @@ useEffect(() => {
 
   const handleNext = () => {
     if (progress.onboardingSkipped) {
-      if (!progress.walletAddress) {
-        addNotification('Connect Wallet', 'Connect your wallet to save progress and earn XP.', 'info');
-      } else {
-        addNotification('Complete Setup First', 'Finish your profile to save progress and earn XP.', 'info');
-      }
+      addNotification('Complete Setup First', 'Finish your profile to save progress and earn XP.', 'info');
       return;
     }
+    // Lesson integrity guard — must have read (timer done) and answered quiz
+    if (!lessonTimerDone || !lessonMiniQuizAnswered) return;
     const isLastSubtopic = progress.currentSubtopicIndex === currentTopic.subtopics.length - 1;
 
     trackEvent('lesson_completed', { moduleId: currentTopic.id, lessonId: currentSubtopic.id });
@@ -721,67 +846,7 @@ useEffect(() => {
 
   if (currentPath === '/signup') {
     return <SignupPage
-      onWalletConnect={(address) => {
-        const did = `did:ethr:${address}`;
-        const walletLower = address.toLowerCase();
-        registerWallet(address, 'Web3User');
-
-        // Check for pending referral link before navigating away
-        const pendingRef = getPendingRef();
-        const isNewReferral = !!pendingRef && !progress.referredBy && !progress.referralRewardClaimed;
-        if (isNewReferral && pendingRef) {
-          clearPendingRef();
-          // pendingRef is the referrer's short wallet code from the URL
-          triggerReferralRewards(`wallet_${walletLower}`, address, pendingRef).catch(() => {});
-        }
-
-        const refCode = generateReferralCode(address);
-
-        try {
-          const saved = localStorage.getItem(`clarix_v1_state_${did}`);
-          if (saved) {
-            const parsed = JSON.parse(saved);
-            setProgress({
-              ...parsed,
-              referralCode: parsed.referralCode || refCode,
-              ...(isNewReferral && !parsed.referralRewardClaimed ? {
-                referredBy: pendingRef!,
-                tokenBalance: (parsed.tokenBalance ?? 0) + 5,
-                referralRewardClaimed: true,
-              } : {}),
-            });
-          } else {
-            setProgress(p => ({
-              ...p,
-              onboarded: true,
-              isPro: false,
-              walletAddress: address,
-              did,
-              username: 'Web3User',
-              referralCode: refCode,
-              ...(isNewReferral ? {
-                referredBy: pendingRef!,
-                tokenBalance: p.tokenBalance + 5,
-                referralRewardClaimed: true,
-              } : {}),
-            }));
-          }
-        } catch {
-          setProgress(p => ({
-            ...p,
-            onboarded: true,
-            isPro: false,
-            walletAddress: address,
-            did,
-            username: 'Web3User',
-            referralCode: refCode,
-            ...(isNewReferral ? {
-              referredBy: pendingRef!,
-              tokenBalance: p.tokenBalance + 5,
-              referralRewardClaimed: true,
-            } : {}),
-          }));
-        }
+      onAuthSuccess={() => {
         window.history.pushState({}, '', '/dashboard');
         window.dispatchEvent(new PopStateEvent('popstate'));
       }}
@@ -801,7 +866,7 @@ useEffect(() => {
   const t = UI_TRANSLATIONS[progress.language] || UI_TRANSLATIONS[Language.EN];
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-void text-slate-200 relative">
+    <div className="flex h-screen w-full overflow-hidden bg-void text-slate-200 relative" style={{ maxWidth: '100vw' }}>
       <WalletConnectModal
         isOpen={isWalletModalOpen}
         onClose={() => setIsWalletModalOpen(false)}
@@ -875,7 +940,7 @@ useEffect(() => {
 
       <NotificationSystem notifications={progress.notifications} onDismiss={dismissNotification} />
 
-      <main className="flex-1 overflow-y-auto no-scrollbar relative flex flex-col">
+      <main className="flex-1 overflow-y-auto overflow-x-hidden no-scrollbar relative flex flex-col">
         <header className="h-14 md:h-16 border-b border-white/[0.04] flex items-center justify-between px-4 md:px-8 bg-[#0A0A0F]/80 backdrop-blur-xl sticky top-0 z-40 shrink-0">
           <div className="flex items-center gap-3 md:gap-6">
             <button
@@ -886,17 +951,22 @@ useEffect(() => {
             </button>
 
             <div onClick={() => setActiveView('profile')} className="flex items-center gap-2.5 cursor-pointer group">
-              <div className={`w-8 h-8 rounded-full overflow-hidden ring-1 transition-all duration-300 ${progress.isPrivate ? 'ring-indigo-500/50 blur-sm' : 'ring-white/10 group-hover:ring-indigo-500/40'}`}>
-                <img src={progress.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+              <div className={`w-8 h-8 rounded-full overflow-hidden ring-1 transition-all duration-300 flex items-center justify-center bg-indigo-500/20 text-indigo-300 font-bold text-sm ${progress.isPrivate ? 'ring-indigo-500/50 blur-sm' : 'ring-white/10 group-hover:ring-indigo-500/40'}`}>
+                {user?.photoURL ? (
+                  <img src={user.photoURL} alt="Profile" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                ) : (
+                  <img src={progress.avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                )}
               </div>
               <div className="hidden sm:block">
                 <p className="text-sm font-semibold text-white group-hover:text-indigo-300 transition-colors leading-none">
-                  {progress.isPrivate ? 'Anonymous' : progress.username}
+                  {progress.isPrivate ? 'Anonymous' : (progress.username || user?.displayName || user?.email?.split('@')[0] || 'Learner')}
                 </p>
                 <div className="flex items-center gap-1.5 mt-0.5">
-                  {progress.did && (
+                  {user && (
                     <span className="text-[10px] text-indigo-400 flex items-center gap-1">
-                      <i className="fa-solid fa-circle-check text-[8px]"></i> Verified
+                      <i className={`fa-solid ${user.providerData[0]?.providerId === 'google.com' ? 'fa-g' : 'fa-envelope'} text-[8px]`}></i>
+                      {user.providerData[0]?.providerId === 'google.com' ? 'Google' : 'Email'}
                     </span>
                   )}
                   {progress.walletAddress && (
@@ -995,43 +1065,140 @@ useEffect(() => {
                     isLoading={isGeneratingRecommendation}
                   />
                 )}
-                {!isQuizMode && <ClarixAtlas progress={progress} onSelectTopic={(id) => setProgress(p => ({ ...p, currentTopicId: id, currentSubtopicIndex: 0 }))} isGuest={!!progress.onboardingSkipped} />}
+                {!isQuizMode && (
+                  <div ref={atlasRef}>
+                    <ClarixAtlas
+                      progress={progress}
+                      onSelectTopic={(id) => {
+                        setProgress(p => ({ ...p, currentTopicId: id, currentSubtopicIndex: 0 }));
+                        if (window.innerWidth < 1024) {
+                          requestAnimationFrame(() => {
+                            lessonAreaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                          });
+                        }
+                      }}
+                      isGuest={!!progress.onboardingSkipped}
+                    />
+                  </div>
+                )}
               </div>
               
-              <div className="lg:col-span-8">
+              <div ref={lessonAreaRef} className="lg:col-span-8">
                 {isQuizMode ? (
                   <Quiz questions={quizQuestions} onComplete={handleQuizComplete} onCancel={() => setIsQuizMode(false)} />
                 ) : (
                   <div className="animate-in fade-in slide-in-from-bottom-8 duration-700">
-                    <div className="flex items-center gap-2 mb-6 md:mb-8">
+                    {/* Mobile back-to-map button */}
+                    <button
+                      className="lg:hidden mb-4 flex items-center gap-2 text-slate-500 text-sm hover:text-white transition-colors"
+                      onClick={() => atlasRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                    >
+                      <i className="fa-solid fa-arrow-left text-xs"></i> Back to modules
+                    </button>
+
+                    <div className="flex items-center gap-2 mb-4">
                       <span className="px-2.5 py-1 bg-white/[0.04] border border-white/[0.07] rounded-md text-[11px] font-medium text-slate-400">
                         {currentTopic.difficulty}
                       </span>
                       <span className="text-[11px] font-medium text-indigo-400">{currentTopic.category}</span>
                     </div>
 
-                    <h1 className="text-4xl md:text-7xl font-bold text-white mb-8 md:mb-12 tracking-tighter leading-none">{currentSubtopic.title}</h1>
+                    {/* Lesson progress indicator with lock icons */}
+                    <div className="flex items-center gap-1.5 mb-6 md:mb-8 flex-wrap">
+                      {currentTopic.subtopics.map((s, i) => {
+                        const isDone = progress.completedSubtopics.includes(s.id);
+                        const isCurr = i === progress.currentSubtopicIndex;
+                        return (
+                          <div
+                            key={s.id}
+                            title={s.title}
+                            className={`flex items-center justify-center w-7 h-7 rounded-full text-[9px] font-bold border transition-all ${
+                              isDone ? 'bg-cyber-lime/20 border-cyber-lime/50 text-cyber-lime' :
+                              isCurr ? 'bg-indigo-500/20 border-indigo-500/60 text-indigo-400' :
+                                       'bg-white/5 border-white/10 text-slate-600'
+                            }`}
+                          >
+                            {isDone ? <i className="fa-solid fa-check text-[8px]"></i> :
+                             !isCurr ? <i className="fa-solid fa-lock text-[8px]"></i> : i + 1}
+                          </div>
+                        );
+                      })}
+                      <span className="text-[10px] text-slate-600 ml-1">
+                        Lesson {progress.currentSubtopicIndex + 1} of {currentTopic.subtopics.length}
+                      </span>
+                    </div>
+
+                    <h1 className="text-3xl md:text-7xl font-bold text-white mb-8 md:mb-12 tracking-tighter leading-none">{currentSubtopic.title}</h1>
 
                     <div className="mb-8 md:mb-10"><RichContent content={currentSubtopic.content} /></div>
 
                     {/* AI Tutor */}
                     <LessonTutor lessonTitle={currentSubtopic.title} lessonContent={currentSubtopic.content} />
 
-                    <div className="flex flex-col sm:flex-row justify-between items-center gap-6 py-8 md:py-12 border-t border-white/5 mt-10">
+                    {/* Lesson mini-quiz (appears after 60s timer) */}
+                    {lessonTimerDone && !lessonMiniQuizAnswered && isGeneratingMiniQuiz && (
+                      <div className="mt-6 p-5 rounded-2xl border border-indigo-500/20 bg-indigo-500/5 flex items-center gap-3">
+                        <i className="fa-solid fa-circle-notch fa-spin text-indigo-400"></i>
+                        <p className="text-sm text-slate-400">Preparing your quick check…</p>
+                      </div>
+                    )}
+                    {lessonTimerDone && lessonMiniQuiz && (
+                      <div className="mt-6 p-5 rounded-2xl border border-indigo-500/20 bg-indigo-500/5 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                        <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-3">
+                          <i className="fa-solid fa-brain text-[8px] mr-1"></i> Quick Check — answer to continue
+                        </p>
+                        <p className="text-sm font-semibold text-white mb-4 leading-relaxed">{lessonMiniQuiz.question}</p>
+                        <div className="space-y-2">
+                          {lessonMiniQuiz.options.map((opt, i) => {
+                            const isSelected = lessonMiniQuizSelected === i;
+                            const isCorrect = i === lessonMiniQuiz.correctAnswerIndex;
+                            const answered = lessonMiniQuizAnswered;
+                            let cls = 'border-white/10 bg-white/[0.02] hover:bg-white/[0.06] text-slate-300 cursor-pointer';
+                            if (answered) {
+                              cls = isCorrect
+                                ? 'border-cyber-lime/60 bg-cyber-lime/10 text-cyber-lime cursor-default'
+                                : isSelected
+                                  ? 'border-rose-500/50 bg-rose-500/10 text-rose-400 cursor-default'
+                                  : 'opacity-30 border-white/5 text-slate-600 cursor-default';
+                            }
+                            return (
+                              <button
+                                key={i}
+                                onClick={() => handleMiniQuizSelect(i)}
+                                disabled={answered}
+                                className={`w-full text-left px-4 py-3 rounded-xl border text-sm transition-all flex items-center justify-between gap-3 ${cls}`}
+                              >
+                                <span>{opt}</span>
+                                {answered && isCorrect && <i className="fa-solid fa-circle-check text-cyber-lime shrink-0 text-sm"></i>}
+                                {answered && isSelected && !isCorrect && <i className="fa-solid fa-circle-xmark text-rose-400 shrink-0 text-sm"></i>}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {lessonMiniQuizAnswered && (
+                          <p className="text-xs text-slate-400 mt-3 leading-relaxed">{lessonMiniQuiz.explanation}</p>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="flex flex-col sm:flex-row justify-between items-center gap-4 py-8 md:py-12 border-t border-white/5 mt-10">
                       <AudioNarrator text={currentSubtopic.content} language={progress.language} />
                       <button
                         onClick={handleNext}
-                        disabled={isGeneratingQuiz}
-                        className="w-full sm:w-auto px-8 md:px-12 py-3.5 md:py-4 bg-indigo-500 hover:bg-indigo-400 text-white font-semibold text-sm rounded-xl transition-all flex items-center justify-center gap-3 disabled:opacity-50 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30"
+                        disabled={isGeneratingQuiz || !lessonTimerDone || !lessonMiniQuizAnswered}
+                        className="w-full sm:w-auto px-8 md:px-12 py-3.5 md:py-4 bg-indigo-500 hover:bg-indigo-400 text-white font-semibold text-sm rounded-xl transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/30"
                       >
                         {isGeneratingQuiz ? (
-                          <><i className="fa-solid fa-circle-notch fa-spin"></i> Generating Quiz...</>
+                          <><i className="fa-solid fa-circle-notch fa-spin"></i> Generating Quiz…</>
+                        ) : !lessonTimerDone ? (
+                          <><i className="fa-solid fa-clock text-xs"></i> Continue in {lessonTimerSec}s</>
+                        ) : !lessonMiniQuizAnswered ? (
+                          isGeneratingMiniQuiz ? 'Loading question…' : 'Answer question to continue'
                         ) : progress.currentSubtopicIndex === currentTopic.subtopics.length - 1 ? (
-                          'Take the Quiz'
+                          <>Take the Quiz <i className="fa-solid fa-chevron-right text-[8px]"></i></>
                         ) : (
-                          'Next Lesson'
+                          <>Next Lesson <i className="fa-solid fa-chevron-right text-[8px] md:text-[10px]"></i></>
                         )}
-                        {!isGeneratingQuiz && <i className="fa-solid fa-chevron-right text-[8px] md:text-[10px]"></i>}
                       </button>
                     </div>
 
@@ -1100,7 +1267,7 @@ useEffect(() => {
             />
           )}
           {activeView === 'certification' && <CertificationHub progress={progress} />}
-          {activeView === 'profile' && <ProfileView progress={progress} onUpdate={(u) => setProgress(p => ({ ...p, ...u }))} onReplayTour={() => { localStorage.removeItem(TOUR_STORAGE_KEY); setShowTour(true); }} />}
+          {activeView === 'profile' && <ProfileView progress={progress} onUpdate={(u) => setProgress(p => ({ ...p, ...u }))} onReplayTour={() => { localStorage.removeItem(TOUR_STORAGE_KEY); setShowTour(true); }} onConnectWallet={() => setIsWalletModalOpen(true)} />}
         </div>
 
         {/* IPFS Footer Badge */}
