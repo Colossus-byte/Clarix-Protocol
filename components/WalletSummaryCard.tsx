@@ -7,10 +7,9 @@ import { getWalletMarketData, formatPrice, formatChange, isPositive, WalletMarke
 interface Props {
   address?: string;
   onConnect: () => void;
-  showConnectPrompt?: boolean;
 }
 
-const WalletSummaryCard: React.FC<Props> = ({ address, onConnect, showConnectPrompt = true }) => {
+const WalletSummaryCard: React.FC<Props> = ({ address, onConnect }) => {
   const [marketData, setMarketData] = useState<WalletMarketData | null>(null);
   const [ethBalance, setEthBalance] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -154,42 +153,40 @@ const WalletSummaryCard: React.FC<Props> = ({ address, onConnect, showConnectPro
         </div>
       ) : null}
 
-      {/* Wallet Section — only shown when wallet is connected or prompt is enabled */}
-      {(address || showConnectPrompt) && (
-        <div className="px-6 py-5">
-          {address ? (
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-slate-500 text-[10px] uppercase tracking-widest mb-1">Connected Wallet</p>
-                <p className="text-white font-mono text-sm">
-                  {address.slice(0, 6)}...{address.slice(-4)}
-                </p>
-                {ethBalance !== null && marketData && (
-                  <div className="flex items-center gap-3 mt-2">
-                    <span className="text-blue-400 font-bold text-sm">{ethBalance.toFixed(4)} ETH</span>
-                    <span className="text-slate-500 text-xs">
-                      ≈ {formatPrice(ethBalance * marketData.ethPrice)}
-                    </span>
-                  </div>
-                )}
-              </div>
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-cyber-lime/10 border border-cyber-lime/20">
-                <div className="w-2 h-2 rounded-full bg-cyber-lime animate-pulse"></div>
-                <span className="text-cyber-lime text-[10px] font-bold uppercase tracking-widest">Live</span>
-              </div>
+      {/* Wallet Section */}
+      <div className="px-6 py-5">
+        {address ? (
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-slate-500 text-[10px] uppercase tracking-widest mb-1">Connected Wallet</p>
+              <p className="text-white font-mono text-sm">
+                {address.slice(0, 6)}...{address.slice(-4)}
+              </p>
+              {ethBalance !== null && marketData && (
+                <div className="flex items-center gap-3 mt-2">
+                  <span className="text-blue-400 font-bold text-sm">{ethBalance.toFixed(4)} ETH</span>
+                  <span className="text-slate-500 text-xs">
+                    ≈ {formatPrice(ethBalance * marketData.ethPrice)}
+                  </span>
+                </div>
+              )}
             </div>
-          ) : (
-            <button
-              onClick={onConnect}
-              className="w-full py-3 rounded-xl bg-electric-violet/10 border border-electric-violet/30 hover:bg-electric-violet/20 transition-all flex items-center justify-center gap-3 group"
-            >
-              <i className="fa-solid fa-wallet text-electric-violet text-sm"></i>
-              <span className="text-white font-bold text-sm">Connect Wallet to See Your Balance</span>
-              <i className="fa-solid fa-arrow-right text-electric-violet text-xs group-hover:translate-x-1 transition-transform"></i>
-            </button>
-          )}
-        </div>
-      )}
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-cyber-lime/10 border border-cyber-lime/20">
+              <div className="w-2 h-2 rounded-full bg-cyber-lime animate-pulse"></div>
+              <span className="text-cyber-lime text-[10px] font-bold uppercase tracking-widest">Live</span>
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={onConnect}
+            className="w-full py-3 rounded-xl bg-electric-violet/10 border border-electric-violet/30 hover:bg-electric-violet/20 transition-all flex items-center justify-center gap-3 group"
+          >
+            <i className="fa-solid fa-wallet text-electric-violet text-sm"></i>
+            <span className="text-white font-bold text-sm">Connect Wallet to See Your Balance</span>
+            <i className="fa-solid fa-arrow-right text-electric-violet text-xs group-hover:translate-x-1 transition-transform"></i>
+          </button>
+        )}
+      </div>
 
     </div>
   );

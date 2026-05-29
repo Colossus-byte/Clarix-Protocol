@@ -45,7 +45,6 @@ import WalletConnectModal from './components/WalletConnectModal';
 import { WalletState, watchWalletChanges, checkExistingConnection } from './services/walletService';
 import { addDoc, collection, doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from './firebase';
-import { getRedirectResult } from 'firebase/auth';
 import LevelCompletionCelebration from './components/LevelCompletionCelebration';
 import LessonTutor from './components/LessonTutor';
 import ActivityFeed from './components/ActivityFeed';
@@ -169,38 +168,6 @@ const AppContent: React.FC = () => {
 
   // Capture ?ref= from URL on first load
   useEffect(() => { captureRefParam(); }, []);
-
-  // Initialize a new user's Firestore profile on first sign-in
-  const initUserProfile = useCallback(async (uid: string, displayName?: string | null, photoURL?: string | null) => {
-    const docRef = doc(db, 'users', uid);
-    const snap = await getDoc(docRef);
-    if (!snap.exists()) {
-      await setDoc(docRef, makeDefaultProgress(displayName, photoURL));
-    }
-  }, []);
-
-  // Handle Google Sign-In redirect result (fires on first mount after redirect)
-  useEffect(() => {
-    getRedirectResult(auth).then(async (result) => {
-      if (!result?.user) return;
-      await initUserProfile(result.user.uid, result.user.displayName, result.user.photoURL);
-      window.history.pushState({}, '', '/dashboard');
-      window.dispatchEvent(new PopStateEvent('popstate'));
-    }).catch((err) => {
-      console.error('[Auth] getRedirectResult error:', err);
-    });
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // After email/password sign-in, navigate away from /signup and init profile
-  useEffect(() => {
-    if (!user || !isAuthReady) return;
-    if (currentPath === '/signup') {
-      initUserProfile(user.uid, user.displayName, user.photoURL).then(() => {
-        window.history.pushState({}, '', '/dashboard');
-        window.dispatchEvent(new PopStateEvent('popstate'));
-      });
-    }
-  }, [user?.uid, isAuthReady]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const [localProgress, setLocalProgress] = useState<UserProgress>(() => {
     try {
@@ -868,7 +835,8 @@ useEffect(() => {
 
   if (currentPath === '/signup') {
     return <SignupPage
-      onAuthSuccess={() => {
+      onConnected={(wallet) => {
+        handleWalletConnected(wallet);
         window.history.pushState({}, '', '/dashboard');
         window.dispatchEvent(new PopStateEvent('popstate'));
       }}
@@ -1032,19 +1000,19 @@ useEffect(() => {
             <div className="relative flex flex-col sm:flex-row sm:items-center gap-4 p-4 pr-10 mb-6 rounded-2xl bg-amber-500/10 border border-amber-500/20">
               <i className="fa-solid fa-circle-exclamation text-amber-400 text-lg shrink-0 hidden sm:block"></i>
               <div className="flex-1 min-w-0">
-                {(user || progress.walletAddress) ? (
+                {progress.walletAddress ? (
                   <>
                     <p className="text-sm font-bold text-white">You're 2 steps from 50 XP — complete your profile</p>
-                    <p className="text-xs text-slate-400 mt-0.5">Finish setup to earn XP, unlock credentials, and appear on the leaderboard.</p>
+                    <p className="text-xs text-slate-400 mt-0.5">Finish setup to save progress, earn XP, and unlock your Clarix Credential.</p>
                   </>
                 ) : (
                   <>
-                    <p className="text-sm font-bold text-white">Sign in to save your progress and earn XP</p>
-                    <p className="text-xs text-slate-400 mt-0.5">You're in guest mode. Create a free account to keep your progress.</p>
+                    <p className="text-sm font-bold text-white">Connect wallet to save progress and earn XP</p>
+                    <p className="text-xs text-slate-400 mt-0.5">You're previewing in guest mode. Connect a wallet to keep your progress.</p>
                   </>
                 )}
               </div>
-              {(user || progress.walletAddress) ? (
+              {progress.walletAddress ? (
                 <button
                   onClick={() => setProgress(p => ({ ...p, onboarded: false, onboardingSkipped: false }))}
                   className="px-4 py-2 rounded-xl bg-amber-500 text-black font-black text-xs uppercase tracking-widest hover:opacity-90 transition-all shrink-0 self-start sm:self-auto"
@@ -1053,10 +1021,10 @@ useEffect(() => {
                 </button>
               ) : (
                 <button
-                  onClick={() => { window.history.pushState({}, '', '/signup'); window.dispatchEvent(new PopStateEvent('popstate')); }}
+                  onClick={() => setIsWalletModalOpen(true)}
                   className="px-4 py-2 rounded-xl bg-amber-500 text-black font-black text-xs uppercase tracking-widest hover:opacity-90 transition-all shrink-0 self-start sm:self-auto"
                 >
-                  Sign In
+                  Connect Wallet
                 </button>
               )}
               <button
@@ -1070,8 +1038,9 @@ useEffect(() => {
           )}
           {activeView === 'academy' && (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-16">
-              <div className="lg:col-span-12 space-y-12">
-                <WalletSummaryCard address={progress.walletAddress} onConnect={connectWallet} showConnectPrompt={!user} />
+              {/* Top panel: hidden on mobile when lesson is in focus so lesson fills screen */}
+              <div className={`lg:col-span-12 space-y-12 ${!mobileAtlasVisible ? 'hidden lg:block' : ''}`}>
+                <WalletSummaryCard address={progress.walletAddress} onConnect={connectWallet} />
                 <IncentiveBanner
                   uid={user?.uid}
                   walletAddress={progress.walletAddress}

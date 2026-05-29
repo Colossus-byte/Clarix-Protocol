@@ -1,5 +1,5 @@
 // services/walletService.ts
-// Clarix — Web3 Wallet Connection (MetaMask + Coinbase) — optional Web3 feature
+// Clarix — Web3 Wallet Connection (MetaMask + Binance + WalletConnect)
 
 import { CoinbaseWalletSDK } from '@coinbase/wallet-sdk';
 
@@ -92,6 +92,74 @@ export async function connectMetaMask(): Promise<WalletState> {
       code: 'CONNECTION_FAILED',
       message: err.message || 'Unknown error',
       userMessage: 'Failed to connect wallet. Please try again.',
+    } as WalletError;
+  }
+}
+
+// ─── Binance Wallet ───────────────────────────────────────────────────────────
+
+export async function connectBinance(): Promise<WalletState> {
+  const win = window as any;
+  // Binance Chain Wallet injects window.BinanceChain; fallback to window.ethereum if Binance-flagged
+  const provider = win.BinanceChain ?? (win.ethereum?.isBinance ? win.ethereum : null);
+
+  if (!provider) {
+    throw {
+      code: 'NO_BINANCE',
+      message: 'Binance Wallet not installed',
+      userMessage: 'Binance Chain Wallet is not installed. Download it at binance.org.',
+    } as WalletError;
+  }
+
+  try {
+    const accounts: string[] = await provider.request({ method: 'eth_requestAccounts' });
+
+    if (!accounts || accounts.length === 0) {
+      throw {
+        code: 'NO_ACCOUNTS',
+        message: 'No accounts returned',
+        userMessage: 'No accounts found. Please unlock your Binance Wallet.',
+      } as WalletError;
+    }
+
+    const address = accounts[0];
+    let chainId = 56; // BNB Chain default
+    try {
+      const chainIdHex: string = await provider.request({ method: 'eth_chainId' });
+      chainId = parseInt(chainIdHex, 16);
+    } catch { /* use BNB Chain default */ }
+
+    let balance = '0.0000';
+    try {
+      const balanceHex: string = await provider.request({
+        method: 'eth_getBalance',
+        params: [address, 'latest'],
+      });
+      balance = hexToEth(balanceHex);
+    } catch { /* non-critical */ }
+
+    return {
+      address,
+      chainId,
+      chainName: getChainName(chainId),
+      balance,
+      balanceUSD: 0,
+      provider: 'metamask', // EIP-1193 compatible
+      isConnected: true,
+    };
+  } catch (err: any) {
+    if (err.code === 4001 || err.message?.includes('User rejected')) {
+      throw {
+        code: 'USER_REJECTED',
+        message: 'User rejected connection',
+        userMessage: 'You cancelled the Binance Wallet connection. Try again when ready.',
+      } as WalletError;
+    }
+    if (err.code && err.userMessage) throw err;
+    throw {
+      code: 'CONNECTION_FAILED',
+      message: err.message || 'Unknown error',
+      userMessage: 'Failed to connect Binance Wallet. Please try again.',
     } as WalletError;
   }
 }
