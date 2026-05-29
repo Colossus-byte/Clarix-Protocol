@@ -426,22 +426,24 @@ const AdminPage: React.FC = () => {
           </div>
         )}
 
-        {/* Tabs */}
-        <div className="flex gap-1 mb-8 bg-white/[0.03] p-1 rounded-xl border border-white/5 w-fit">
-          {TABS.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all flex items-center gap-2 ${
-                activeTab === tab.id
-                  ? 'bg-white/[0.07] text-white'
-                  : 'text-slate-500 hover:text-slate-300'
-              }`}
-            >
-              <i className={`fa-solid ${tab.icon} text-[10px]`}></i>
-              {tab.label}
-            </button>
-          ))}
+        {/* Tabs — scrollable on small screens */}
+        <div className="overflow-x-auto mb-8">
+          <div className="flex gap-1 bg-white/[0.03] p-1 rounded-xl border border-white/5 w-max min-w-full sm:w-fit">
+            {TABS.map(tab => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`px-3 sm:px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-widest transition-all flex items-center gap-2 whitespace-nowrap ${
+                  activeTab === tab.id
+                    ? 'bg-white/[0.07] text-white'
+                    : 'text-slate-500 hover:text-slate-300'
+                }`}
+              >
+                <i className={`fa-solid ${tab.icon} text-[10px]`}></i>
+                {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* ── Overview tab ─────────────────────────────────────────────────── */}

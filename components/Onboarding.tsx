@@ -193,7 +193,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete, onRemindLater }) =>
         onClick={onRemindLater}
         className="text-[11px] text-slate-600 hover:text-slate-400 transition-colors"
       >
-        Not ready? Preview lessons without connecting →
+        Not ready? Continue as guest →
       </button>
     </div>
   );

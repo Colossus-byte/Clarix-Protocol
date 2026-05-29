@@ -151,6 +151,7 @@ const AppContent: React.FC = () => {
   // Refs for mobile scroll
   const lessonAreaRef = useRef<HTMLDivElement>(null);
   const atlasRef = useRef<HTMLDivElement>(null);
+  const [mobileAtlasVisible, setMobileAtlasVisible] = useState(true);
 
   // Lesson integrity state
   const [lessonTimerSec, setLessonTimerSec] = useState(60);
@@ -353,6 +354,11 @@ const handleWalletDisconnected = () => {
     const storageKey = progress.did ? `clarix_v1_state_${progress.did}` : 'clarix_v1_state';
     localStorage.setItem(storageKey, JSON.stringify(progress));
   }, [progress]);
+
+  // Reset atlas to visible whenever user navigates away from academy
+  useEffect(() => {
+    setMobileAtlasVisible(true);
+  }, [activeView]);
 
   // Referral: when a Firebase user is authenticated, ensure they have a referral
   // code and check for unclaimed referrer rewards.
@@ -682,24 +688,36 @@ useEffect(() => {
     // Lesson integrity guard — must have read (timer done) and answered quiz
     if (!lessonTimerDone || !lessonMiniQuizAnswered) return;
     const isLastSubtopic = progress.currentSubtopicIndex === currentTopic.subtopics.length - 1;
+    // Prevent re-farming: check completion state before awarding
+    const alreadyCompleted = progress.completedSubtopics.includes(currentSubtopic.id);
+    const alreadyCompletedTopic = progress.completedTopics.includes(currentTopic.id);
 
-    trackEvent('lesson_completed', { moduleId: currentTopic.id, lessonId: currentSubtopic.id });
+    if (!alreadyCompleted) {
+      trackEvent('lesson_completed', { moduleId: currentTopic.id, lessonId: currentSubtopic.id });
+    }
 
-    // Award XP + tokens + update streak for this lesson
     const XP_PER_LESSON = 20;
     const TOKENS_PER_LESSON = 3;
     setProgress(prev => {
+      const alreadyDone = prev.completedSubtopics.includes(currentSubtopic.id);
+      const newCompleted = [...new Set([...prev.completedSubtopics, currentSubtopic.id])];
+
+      // Already completed — navigate forward without awarding anything
+      if (alreadyDone) {
+        return isLastSubtopic
+          ? { ...prev, completedSubtopics: newCompleted }
+          : { ...prev, completedSubtopics: newCompleted, currentSubtopicIndex: prev.currentSubtopicIndex + 1 };
+      }
+
+      // First completion — award XP, tokens, streak
       const streakUpdates = computeStreakUpdates(prev);
       const newXP = (prev.xp || 0) + XP_PER_LESSON;
-      const newCompleted = [...new Set([...prev.completedSubtopics, currentSubtopic.id])];
-      // Award 1 bonus token when streak increments (new day)
       const streakBonus = streakUpdates.streak > prev.streak ? 1 : 0;
       const newTokens = prev.tokenBalance + TOKENS_PER_LESSON + streakBonus;
       const updates = { ...streakUpdates, xp: newXP, completedSubtopics: newCompleted, tokenBalance: newTokens };
       writeLeaderboard(newXP);
       trackEvent('token_earned', { amount: TOKENS_PER_LESSON + streakBonus, reason: 'lesson_completed' });
 
-      // Check streak credentials based on the NEW streak value
       const newStreak = streakUpdates.streak;
       const earned = prev.earnedCredentialIds || [];
       if (newStreak >= 7 && !earned.includes('streak-7')) {
@@ -713,13 +731,13 @@ useEffect(() => {
         : { ...prev, ...updates, currentSubtopicIndex: prev.currentSubtopicIndex + 1 };
     });
 
-    writeActivityEvent(currentSubtopic.title, currentTopic.title);
+    if (!alreadyCompleted) {
+      writeActivityEvent(currentSubtopic.title, currentTopic.title);
+    }
 
-    // Referral reward: for Firebase users without a wallet, the 5 $PATH bonus
-    // fires here on first lesson. Wallet users already got it at connect time
-    // (referralRewardClaimed is true), so this guard prevents double-crediting.
+    // Referral reward on first-ever lesson only
     const isFirstEverLesson = progress.completedSubtopics.length === 0;
-    if (isFirstEverLesson && progress.referredBy && !progress.referralRewardClaimed) {
+    if (!alreadyCompleted && isFirstEverLesson && progress.referredBy && !progress.referralRewardClaimed) {
       setProgress(p => ({ ...p, tokenBalance: p.tokenBalance + 5, referralRewardClaimed: true }));
       addNotification('Welcome Bonus', '+5 $PATH from your referral', 'success');
       triggerReferralRewards(
@@ -729,7 +747,8 @@ useEffect(() => {
       ).catch(() => {});
     }
 
-    if (isLastSubtopic) {
+    // Only trigger topic quiz if the topic hasn't already been completed
+    if (isLastSubtopic && !alreadyCompletedTopic) {
       handleStartQuiz();
     }
   };
@@ -745,47 +764,50 @@ useEffect(() => {
   const handleQuizComplete = (score: number, total: number) => {
     if (score >= total * 0.7) {
       trackEvent('quiz_passed', { moduleId: currentTopic.id, score, total });
+      const alreadyCompletedTopic = progress.completedTopics.includes(currentTopic.id);
       const currentIndex = TOPICS.findIndex(t => t.id === currentTopic.id);
       const nextTopic = TOPICS[currentIndex + 1];
       const newCompletedTopics = [...new Set([...progress.completedTopics, currentTopic.id])];
-      const XP_LEVEL_BONUS = 50;
-      const PERFECT_SCORE_BONUS = score === total ? 5 : 0;
+      // Only award XP/tokens on first completion
+      const XP_LEVEL_BONUS = alreadyCompletedTopic ? 0 : 50;
+      const PERFECT_SCORE_BONUS = (!alreadyCompletedTopic && score === total) ? 5 : 0;
+      const tokenReward = alreadyCompletedTopic ? 0 : (currentTopic.rewardTokens + PERFECT_SCORE_BONUS);
       const newXP = (progress.xp || 0) + XP_LEVEL_BONUS;
 
       const updatedProgress = {
         ...progress,
         completedTopics: newCompletedTopics,
-        tokenBalance: progress.tokenBalance + currentTopic.rewardTokens + PERFECT_SCORE_BONUS,
+        tokenBalance: progress.tokenBalance + tokenReward,
         currentTopicId: nextTopic?.id || progress.currentTopicId,
         currentSubtopicIndex: 0,
-        vantaRank: progress.vantaRank + 1,
+        vantaRank: alreadyCompletedTopic ? progress.vantaRank : progress.vantaRank + 1,
         xp: newXP,
       };
 
       setProgress(updatedProgress);
-      writeLeaderboard(newXP);
-      trackEvent('module_completed', { moduleId: currentTopic.id });
-      trackEvent('token_earned', { amount: currentTopic.rewardTokens + PERFECT_SCORE_BONUS, reason: 'module_completed' });
 
-      // Check if a credential is awarded for completing this level
-      const credDef = CREDENTIAL_DEFS.find(c => c.levelTopicId === currentTopic.id);
-      if (credDef && !(progress.earnedCredentialIds || []).includes(credDef.id)) {
-        // Award it but show after the level celebration (queued)
-        awardCredential(credDef.id, false);
+      if (!alreadyCompletedTopic) {
+        writeLeaderboard(newXP);
+        trackEvent('module_completed', { moduleId: currentTopic.id });
+        trackEvent('token_earned', { amount: tokenReward, reason: 'module_completed' });
+
+        const credDef = CREDENTIAL_DEFS.find(c => c.levelTopicId === currentTopic.id);
+        if (credDef && !(progress.earnedCredentialIds || []).includes(credDef.id)) {
+          awardCredential(credDef.id, false);
+        }
+
+        setCelebrationData({
+          topicTitle: currentTopic.title,
+          xpEarned: XP_LEVEL_BONUS,
+          tokensEarned: tokenReward,
+          nextTopicTitle: nextTopic?.title,
+        });
+        setShowCelebration(true);
+
+        const perfectMsg = PERFECT_SCORE_BONUS > 0 ? `  ·  +5 perfect score bonus` : '';
+        addNotification('Level Complete!', `+${XP_LEVEL_BONUS} XP  ·  +${tokenReward} $PATH tokens${perfectMsg}`, 'success');
+        generateNewRecommendation(updatedProgress);
       }
-
-      const totalTokensEarned = currentTopic.rewardTokens + PERFECT_SCORE_BONUS;
-      setCelebrationData({
-        topicTitle: currentTopic.title,
-        xpEarned: XP_LEVEL_BONUS,
-        tokensEarned: totalTokensEarned,
-        nextTopicTitle: nextTopic?.title,
-      });
-      setShowCelebration(true);
-
-      const perfectMsg = PERFECT_SCORE_BONUS > 0 ? `  ·  +5 perfect score bonus` : '';
-      addNotification('Level Complete!', `+${XP_LEVEL_BONUS} XP  ·  +${totalTokensEarned} $PATH tokens${perfectMsg}`, 'success');
-      generateNewRecommendation(updatedProgress);
     } else {
       trackEvent('quiz_failed', { moduleId: currentTopic.id, score, total });
     }
@@ -927,6 +949,7 @@ useEffect(() => {
           onSelectTopic={(id) => {
             setProgress(p => ({ ...p, currentTopicId: id, currentSubtopicIndex: 0 }));
             setIsSidebarOpen(false);
+            if (window.innerWidth < 1024) setMobileAtlasVisible(false);
           }}
           onSelectView={(v) => {
             setActiveView(v as any);
@@ -1009,19 +1032,19 @@ useEffect(() => {
             <div className="relative flex flex-col sm:flex-row sm:items-center gap-4 p-4 pr-10 mb-6 rounded-2xl bg-amber-500/10 border border-amber-500/20">
               <i className="fa-solid fa-circle-exclamation text-amber-400 text-lg shrink-0 hidden sm:block"></i>
               <div className="flex-1 min-w-0">
-                {progress.walletAddress ? (
+                {(user || progress.walletAddress) ? (
                   <>
                     <p className="text-sm font-bold text-white">You're 2 steps from 50 XP — complete your profile</p>
-                    <p className="text-xs text-slate-400 mt-0.5">Finish setup to save progress, earn XP, and unlock your Clarix Credential.</p>
+                    <p className="text-xs text-slate-400 mt-0.5">Finish setup to earn XP, unlock credentials, and appear on the leaderboard.</p>
                   </>
                 ) : (
                   <>
-                    <p className="text-sm font-bold text-white">Connect wallet to save progress and earn XP</p>
-                    <p className="text-xs text-slate-400 mt-0.5">You're previewing in guest mode. Connect a wallet to keep your progress.</p>
+                    <p className="text-sm font-bold text-white">Sign in to save your progress and earn XP</p>
+                    <p className="text-xs text-slate-400 mt-0.5">You're in guest mode. Create a free account to keep your progress.</p>
                   </>
                 )}
               </div>
-              {progress.walletAddress ? (
+              {(user || progress.walletAddress) ? (
                 <button
                   onClick={() => setProgress(p => ({ ...p, onboarded: false, onboardingSkipped: false }))}
                   className="px-4 py-2 rounded-xl bg-amber-500 text-black font-black text-xs uppercase tracking-widest hover:opacity-90 transition-all shrink-0 self-start sm:self-auto"
@@ -1030,10 +1053,10 @@ useEffect(() => {
                 </button>
               ) : (
                 <button
-                  onClick={() => setIsWalletModalOpen(true)}
+                  onClick={() => { window.history.pushState({}, '', '/signup'); window.dispatchEvent(new PopStateEvent('popstate')); }}
                   className="px-4 py-2 rounded-xl bg-amber-500 text-black font-black text-xs uppercase tracking-widest hover:opacity-90 transition-all shrink-0 self-start sm:self-auto"
                 >
-                  Connect Wallet
+                  Sign In
                 </button>
               )}
               <button
@@ -1048,7 +1071,7 @@ useEffect(() => {
           {activeView === 'academy' && (
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-16">
               <div className="lg:col-span-12 space-y-12">
-                <WalletSummaryCard address={progress.walletAddress} onConnect={connectWallet} />
+                <WalletSummaryCard address={progress.walletAddress} onConnect={connectWallet} showConnectPrompt={!user} />
                 <IncentiveBanner
                   uid={user?.uid}
                   walletAddress={progress.walletAddress}
@@ -1059,22 +1082,23 @@ useEffect(() => {
                   }}
                 />
                 {!isQuizMode && (recommendation || isGeneratingRecommendation) && (
-                  <NeuralRoadmap 
-                    recommendation={recommendation} 
-                    onNavigate={(id) => setProgress(p => ({ ...p, currentTopicId: id, currentSubtopicIndex: 0 }))} 
+                  <NeuralRoadmap
+                    recommendation={recommendation}
+                    onNavigate={(id) => {
+                      setProgress(p => ({ ...p, currentTopicId: id, currentSubtopicIndex: 0 }));
+                      if (window.innerWidth < 1024) setMobileAtlasVisible(false);
+                    }}
                     isLoading={isGeneratingRecommendation}
                   />
                 )}
                 {!isQuizMode && (
-                  <div ref={atlasRef}>
+                  <div ref={atlasRef} className={mobileAtlasVisible ? '' : 'hidden lg:block'}>
                     <ClarixAtlas
                       progress={progress}
                       onSelectTopic={(id) => {
                         setProgress(p => ({ ...p, currentTopicId: id, currentSubtopicIndex: 0 }));
                         if (window.innerWidth < 1024) {
-                          requestAnimationFrame(() => {
-                            lessonAreaRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                          });
+                          setMobileAtlasVisible(false);
                         }
                       }}
                       isGuest={!!progress.onboardingSkipped}
@@ -1091,7 +1115,10 @@ useEffect(() => {
                     {/* Mobile back-to-map button */}
                     <button
                       className="lg:hidden mb-4 flex items-center gap-2 text-slate-500 text-sm hover:text-white transition-colors"
-                      onClick={() => atlasRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                      onClick={() => {
+                        setMobileAtlasVisible(true);
+                        setTimeout(() => atlasRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
+                      }}
                     >
                       <i className="fa-solid fa-arrow-left text-xs"></i> Back to modules
                     </button>
