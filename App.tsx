@@ -41,8 +41,7 @@ import { TOPICS, UI_TRANSLATIONS, DEFAULT_AVATARS, PROPOSALS, CREDENTIAL_DEFS, C
 import { UserProgress, QuizQuestion, Language, Guild, P2PMessage, P2PTransaction, ProtocolNotification, Recommendation } from './types';
 import { generateQuiz, generatePathRecommendation } from './services/claudeService';
 import { FirebaseProvider, useFirebase } from './contexts/FirebaseContext';
-import WalletConnectModal from './components/WalletConnectModal';
-import { WalletState, watchWalletChanges, checkExistingConnection } from './services/walletService';
+import { WalletState, watchWalletChanges, checkExistingConnection, connectWalletConnect } from './services/walletService';
 import { addDoc, collection, doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from './firebase';
 import LevelCompletionCelebration from './components/LevelCompletionCelebration';
@@ -144,7 +143,6 @@ const AppContent: React.FC = () => {
   const { t: tTerm, Term } = useTerminology();
   const [currentPath, setCurrentPath] = useState(window.location.pathname);
   const { user, isAuthReady, progress: firebaseProgress, updateProgress } = useFirebase();
-  const [isWalletModalOpen, setIsWalletModalOpen] = useState(false);
   const [walletState, setWalletState] = useState<WalletState | null>(null);
 
   // Refs for mobile scroll
@@ -238,8 +236,13 @@ const AppContent: React.FC = () => {
     setProgress(p => ({ ...p, notifications: p.notifications.filter(n => n.id !== id) }));
   };
 
-const connectWallet = () => {
-  setIsWalletModalOpen(true);
+const connectWallet = async () => {
+  try {
+    const wallet = await connectWalletConnect();
+    handleWalletConnected(wallet);
+  } catch {
+    // user cancelled or modal error — no-op
+  }
 };
 
 const handleWalletConnected = (wallet: WalletState) => {
@@ -857,12 +860,6 @@ useEffect(() => {
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-void text-slate-200 relative" style={{ maxWidth: '100vw' }}>
-      <WalletConnectModal
-        isOpen={isWalletModalOpen}
-        onClose={() => setIsWalletModalOpen(false)}
-        onConnected={handleWalletConnected}
-        onGuestPreview={handleSkipOnboarding}
-      />
 
       {showManifesto && <Manifesto onClose={() => setShowManifesto(false)} />}
 
@@ -1021,7 +1018,7 @@ useEffect(() => {
                 </button>
               ) : (
                 <button
-                  onClick={() => setIsWalletModalOpen(true)}
+                  onClick={connectWallet}
                   className="px-4 py-2 rounded-xl bg-amber-500 text-black font-black text-xs uppercase tracking-widest hover:opacity-90 transition-all shrink-0 self-start sm:self-auto"
                 >
                   Connect Wallet
@@ -1263,7 +1260,7 @@ useEffect(() => {
             />
           )}
           {activeView === 'certification' && <CertificationHub progress={progress} />}
-          {activeView === 'profile' && <ProfileView progress={progress} onUpdate={(u) => setProgress(p => ({ ...p, ...u }))} onReplayTour={() => { localStorage.removeItem(TOUR_STORAGE_KEY); setShowTour(true); }} onConnectWallet={() => setIsWalletModalOpen(true)} />}
+          {activeView === 'profile' && <ProfileView progress={progress} onUpdate={(u) => setProgress(p => ({ ...p, ...u }))} onReplayTour={() => { localStorage.removeItem(TOUR_STORAGE_KEY); setShowTour(true); }} onConnectWallet={connectWallet} />}
         </div>
 
         {/* IPFS Footer Badge */}

@@ -3,7 +3,7 @@
 
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { connectMetaMask, connectBinance, WalletState, WalletError } from '../services/walletService';
+import { connectMetaMask, connectBinance, connectWalletConnect, WalletState, WalletError } from '../services/walletService';
 
 interface SignupPageProps {
   onConnected?: (wallet: WalletState) => void;
@@ -56,11 +56,21 @@ const SignupPage: React.FC<SignupPageProps> = ({ onConnected, onAuthSuccess }) =
   };
 
   const doConnectWC = async () => {
-    if (hasInjectedWallet) {
-      await doConnect('metamask');
-      return;
+    setConnectingLabel('WalletConnect');
+    setStep('connecting');
+    try {
+      const wallet = await connectWalletConnect();
+      setConnectedAddress(wallet.address);
+      setStep('success');
+      setTimeout(() => {
+        onConnected?.(wallet);
+        onAuthSuccess?.();
+      }, 1200);
+    } catch (err: any) {
+      const code: string = err?.code ?? 'CONNECTION_FAILED';
+      setErrorMsg(WALLET_ERRORS[code] ?? err?.userMessage ?? 'Something went wrong.');
+      setStep('error');
     }
-    setStep('wc-mobile');
   };
 
   const goBack = () => { setStep('select'); setErrorMsg(''); };

@@ -2,6 +2,8 @@
 // Clarix — Web3 Wallet Connection (MetaMask + Binance + WalletConnect)
 
 import { CoinbaseWalletSDK } from '@coinbase/wallet-sdk';
+import { createWeb3Modal, defaultConfig } from '@web3modal/ethers';
+import { BrowserProvider, formatEther } from 'ethers';
 
 export interface WalletState {
   address: string;
@@ -164,6 +166,110 @@ export async function connectBinance(): Promise<WalletState> {
   }
 }
 
+// ─── WalletConnect modal (lazy singleton) ────────────────────────────────────
+
+const WC_PROJECT_ID =
+  (import.meta as any).env?.VITE_WALLETCONNECT_PROJECT_ID || '1b3dd0a597c4caa18ac4a366b63aa52c';
+
+type Web3Modal = ReturnType<typeof createWeb3Modal>;
+let wcModal: Web3Modal | null = null;
+
+function getWcModal(): Web3Modal {
+  if (wcModal) return wcModal;
+  wcModal = createWeb3Modal({
+    ethersConfig: defaultConfig({
+      metadata: {
+        name: 'Clarix Protocol',
+        description: 'Crypto Intelligence, Made Clear',
+        url: 'https://clarixprotocol.com',
+        icons: ['https://clarixprotocol.com/favicon.ico'],
+      },
+      enableEIP6963: true,
+      enableInjected: true,
+      enableCoinbase: true,
+    }),
+    chains: [
+      { chainId: 1,     name: 'Ethereum Mainnet', currency: 'ETH',  explorerUrl: 'https://etherscan.io',            rpcUrl: 'https://cloudflare-eth.com' },
+      { chainId: 137,   name: 'Polygon',           currency: 'MATIC',explorerUrl: 'https://polygonscan.com',         rpcUrl: 'https://polygon-rpc.com' },
+      { chainId: 42161, name: 'Arbitrum One',       currency: 'ETH',  explorerUrl: 'https://arbiscan.io',             rpcUrl: 'https://arb1.arbitrum.io/rpc' },
+      { chainId: 8453,  name: 'Base',               currency: 'ETH',  explorerUrl: 'https://basescan.org',            rpcUrl: 'https://mainnet.base.org' },
+      { chainId: 56,    name: 'BNB Chain',          currency: 'BNB',  explorerUrl: 'https://bscscan.com',             rpcUrl: 'https://bsc-dataseed.binance.org' },
+      { chainId: 10,    name: 'Optimism',           currency: 'ETH',  explorerUrl: 'https://optimistic.etherscan.io', rpcUrl: 'https://mainnet.optimism.io' },
+    ],
+    projectId: WC_PROJECT_ID,
+  });
+  return wcModal;
+}
+
+export async function connectWalletConnect(): Promise<WalletState> {
+  // Cast to any: AppKit base types don't expose the full ethers adapter API
+  const modal = getWcModal() as any;
+
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    let modalHasOpened = false;
+
+    const unsubscribeProvider: () => void = modal.subscribeProvider(async ({ address, chainId, isConnected }: any) => {
+      if (!modalHasOpened || settled || !isConnected || !address) return;
+      settled = true;
+      unsubscribeProvider();
+
+      const resolvedChainId: number = chainId ?? 1;
+      try {
+        const rawProvider = modal.getWalletProvider();
+        const ethersProvider = new BrowserProvider(rawProvider);
+        const balanceBn = await ethersProvider.getBalance(address);
+        resolve({
+          address,
+          chainId: resolvedChainId,
+          chainName: getChainName(resolvedChainId),
+          balance: parseFloat(formatEther(balanceBn)).toFixed(4),
+          balanceUSD: 0,
+          provider: 'walletconnect',
+          isConnected: true,
+        });
+      } catch {
+        resolve({
+          address,
+          chainId: resolvedChainId,
+          chainName: getChainName(resolvedChainId),
+          balance: '0.0000',
+          balanceUSD: 0,
+          provider: 'walletconnect',
+          isConnected: true,
+        });
+      }
+    });
+
+    const unsubscribeState: () => void = modal.subscribeState(({ open }: any) => {
+      if (open) { modalHasOpened = true; return; }
+      if (modalHasOpened && !settled && !modal.getIsConnected()) {
+        settled = true;
+        unsubscribeProvider();
+        unsubscribeState();
+        reject({
+          code: 'USER_CANCELLED',
+          message: 'WalletConnect modal closed without connecting',
+          userMessage: 'Connection cancelled. Please try again.',
+        } as WalletError);
+      }
+    });
+
+    modal.open().catch((err: any) => {
+      if (!settled) {
+        settled = true;
+        unsubscribeProvider();
+        unsubscribeState();
+        reject({
+          code: 'MODAL_ERROR',
+          message: err?.message ?? 'Failed to open WalletConnect modal',
+          userMessage: 'Failed to open WalletConnect. Please try again.',
+        } as WalletError);
+      }
+    });
+  });
+}
+
 // ─── Coinbase Wallet ──────────────────────────────────────────────────────────
 
 type CbProvider = ReturnType<InstanceType<typeof CoinbaseWalletSDK>['makeWeb3Provider']>;
@@ -234,6 +340,9 @@ export async function connectCoinbase(): Promise<WalletState> {
 // ─── Disconnect ───────────────────────────────────────────────────────────────
 
 export async function disconnectWallet(): Promise<void> {
+  if (wcModal) {
+    try { await (wcModal as any).disconnect(); } catch { /* ignore */ }
+  }
   if (cbProvider) {
     try { await cbProvider.disconnect(); } catch { /* ignore */ }
   }
